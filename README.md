@@ -31,24 +31,25 @@ npm run test:content
 
 ## 添加一期新活动
 
-复制 `src/content/events/2026-03.md`，按年份和期数命名，例如 `src/content/events/2026-04.md`。只修改文件顶部字段和正文，不需要改页面组件。
+复制 `src/content/events/2026-09-30.md`，按活动日期命名，例如 `src/content/events/2027-01-20.md`。只修改文件顶部字段和正文，不需要改页面组件。同一天有多场报告时可使用 `sessions` 列表，现有历史活动中包含示例。
 
 ```yaml
 ---
-issue: 4
-date: 2026-10-16
-time: "14:00–16:00（北京时间）"
+issue: 19
+date: 2027-01-20
+time: "09:30–12:00"
 host: "主持人姓名"
 speaker: "报告人姓名"          # 未确定时删除本行
 affiliation: "报告人单位"      # 未确定时删除本行
 title: "报告题目"              # 未确定时删除本行
 summary: "报告摘要"            # 未确定时删除本行
-location: "线上 · 腾讯会议"
+reportType: "工作进展"
+location: "紫金山天文台 3 号楼 402 会议室"
 meetingUrl: "https://..."       # 未确定或不公开时删除本行
 status: "已公布"                # 待定 / 已公布 / 已结束
 materials:
   - label: "报告幻灯片"
-    url: "/documents/2026-04-slides.pdf"
+    url: "/documents/2027-01-20-slides.pdf"
 ---
 
 正文可填写活动说明、会后纪要或问答摘要。

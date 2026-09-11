@@ -13,10 +13,18 @@ const events = defineCollection({
     affiliation: z.string().optional(),
     title: z.string().optional(),
     summary: z.string().optional(),
+    reportType: z.enum(['工作进展', '研究动态', '技能交流', '报告演练', '课程讲习', '工作会议', '其他']).optional(),
     location: z.string(),
     meetingUrl: z.url().optional(),
     status: z.enum(['待定', '已公布', '已结束']),
-    materials: z.array(z.object({ label: z.string(), url: z.string() })).default([])
+    materials: z.array(z.object({ label: z.string(), url: z.string() })).default([]),
+    sessions: z.array(z.object({
+      speaker: z.string(),
+      affiliation: z.string().optional(),
+      type: z.enum(['工作进展', '研究动态', '技能交流', '报告演练', '课程讲习', '工作会议', '其他']).optional(),
+      title: z.string(),
+      summary: z.string().optional()
+    })).default([])
   })
 });
 

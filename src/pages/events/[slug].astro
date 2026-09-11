@@ -15,6 +15,13 @@ interface Props { event: CollectionEntry<'events'>; }
 const { event } = Astro.props;
 const { Content } = await render(event);
 const display = (value?: string) => value || '待定';
+const sessions = event.data.sessions.length ? event.data.sessions : [{
+  speaker: display(event.data.speaker),
+  affiliation: display(event.data.affiliation),
+  type: event.data.reportType,
+  title: display(event.data.title),
+  summary: event.data.summary
+}];
 ---
 <BaseLayout title={`第 ${event.data.issue} 期活动`} description={event.data.summary || '逐日青年论坛活动详情。'}>
   <article>
@@ -22,7 +29,7 @@ const display = (value?: string) => value || '待定';
       <div class="container narrow">
         <a class="breadcrumb" href={sitePath('/events/')}>活动日程</a>
         <div class="detail-kicker"><span>第 {event.data.issue} 期</span><StatusBadge status={event.data.status} /></div>
-        <h1>{display(event.data.title)}</h1>
+        <h1>{event.data.sessions.length > 1 ? `第 ${event.data.issue} 期活动` : display(event.data.title)}</h1>
         <p>{formatDate(event.data.date)} · {event.data.time}</p>
       </div>
     </header>
@@ -32,15 +39,24 @@ const display = (value?: string) => value || '待定';
           <h2>活动信息</h2>
           <dl class="detail-meta">
             <div><dt>主持人</dt><dd>{event.data.host}</dd></div>
-            <div><dt>报告人</dt><dd>{display(event.data.speaker)}</dd></div>
-            <div><dt>报告人单位</dt><dd>{display(event.data.affiliation)}</dd></div>
+            <div><dt>报告人</dt><dd>{sessions.map((session) => session.speaker).join('、')}</dd></div>
+            <div><dt>报告人单位</dt><dd>{[...new Set(sessions.map((session) => session.affiliation).filter(Boolean))].join('、') || '待定'}</dd></div>
             <div><dt>地点</dt><dd>{event.data.location}</dd></div>
           </dl>
           {event.data.meetingUrl && event.data.status !== '已结束' && <a class="button" href={event.data.meetingUrl}>进入线上会议</a>}
         </section>
         <section>
-          <h2>报告摘要</h2>
-          <p>{event.data.summary || '待定'}</p>
+          <h2>{sessions.length > 1 ? '本期报告' : '报告信息'}</h2>
+          <div class="session-list">
+            {sessions.map((session, index) => (
+              <article class="session-item">
+                {sessions.length > 1 && <p class="session-number">报告 {index + 1}</p>}
+                <div class="session-heading"><h3>{session.title}</h3>{session.type && <span>{session.type}</span>}</div>
+                <p class="session-speaker">{session.speaker}{session.affiliation && session.affiliation !== '待定' ? ` · ${session.affiliation}` : ''}</p>
+                <p>{session.summary || '摘要详见论坛手册。'}</p>
+              </article>
+            ))}
+          </div>
         </section>
         <section class="prose"><Content /></section>
         <section>

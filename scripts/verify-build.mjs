@@ -6,13 +6,14 @@ const root = new URL('../', import.meta.url).pathname.replace(/^\/(.:\/)/, '$1')
 const dist = join(root, 'dist');
 const eventSource = join(root, 'src', 'content', 'events');
 
+const eventIds = readdirSync(eventSource).filter((name) => /\.mdx?$/.test(name)).map((name) => name.replace(/\.mdx?$/, ''));
+const trainingSource = join(root, 'src', 'content', 'training');
+const trainingIds = readdirSync(trainingSource).filter((name) => /\.mdx?$/.test(name)).map((name) => name.replace(/\.mdx?$/, ''));
 const expectedRoutes = [
-  'index.html', 'events/index.html', 'events/2026-01/index.html',
-  'events/2026-02/index.html', 'events/2026-03/index.html',
-  'archive/index.html', 'handbook/index.html', 'training/index.html',
-  'training/aso-s-overview/index.html', 'training/python-sunpy-start/index.html',
-  'training/stix-analysis/index.html', 'discussion/index.html',
-  'about/index.html', '404.html'
+  'index.html', 'events/index.html', 'archive/index.html', 'handbook/index.html',
+  'training/index.html', 'discussion/index.html', 'about/index.html', '404.html',
+  ...eventIds.map((id) => `events/${id}/index.html`),
+  ...trainingIds.map((id) => `training/${id}/index.html`)
 ];
 for (const route of expectedRoutes) assert.ok(existsSync(join(dist, route)), `缺少构建路由：${route}`);
 
