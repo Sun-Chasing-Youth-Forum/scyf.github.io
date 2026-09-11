@@ -18,6 +18,7 @@ const display = (value?: string) => value || '待定';
 const sessions = event.data.sessions.length ? event.data.sessions : [{
   speaker: display(event.data.speaker),
   affiliation: display(event.data.affiliation),
+  time: undefined,
   type: event.data.reportType,
   title: display(event.data.title),
   summary: event.data.summary
@@ -29,7 +30,7 @@ const sessions = event.data.sessions.length ? event.data.sessions : [{
       <div class="container narrow">
         <a class="breadcrumb" href={sitePath('/events/')}>活动日程</a>
         <div class="detail-kicker"><span>第 {event.data.issue} 期</span><StatusBadge status={event.data.status} /></div>
-        <h1>{event.data.sessions.length > 1 ? `第 ${event.data.issue} 期活动` : display(event.data.title)}</h1>
+        <h1>{display(event.data.title)}</h1>
         <p>{formatDate(event.data.date)} · {event.data.time}</p>
       </div>
     </header>
@@ -41,7 +42,9 @@ const sessions = event.data.sessions.length ? event.data.sessions : [{
             <div><dt>主持人</dt><dd>{event.data.host}</dd></div>
             <div><dt>报告人</dt><dd>{sessions.map((session) => session.speaker).join('、')}</dd></div>
             <div><dt>报告人单位</dt><dd>{[...new Set(sessions.map((session) => session.affiliation).filter(Boolean))].join('、') || '待定'}</dd></div>
+            {event.data.reportType && <div><dt>报告类型</dt><dd>{event.data.reportType}</dd></div>}
             <div><dt>地点</dt><dd>{event.data.location}</dd></div>
+            {event.data.meetingNumber && event.data.status !== '已结束' && <div><dt>腾讯会议号</dt><dd>{event.data.meetingNumber}</dd></div>}
           </dl>
           {event.data.meetingUrl && event.data.status !== '已结束' && <a class="button" href={event.data.meetingUrl}>进入线上会议</a>}
         </section>
@@ -52,6 +55,7 @@ const sessions = event.data.sessions.length ? event.data.sessions : [{
               <article class="session-item">
                 {sessions.length > 1 && <p class="session-number">报告 {index + 1}</p>}
                 <div class="session-heading"><h3>{session.title}</h3>{session.type && <span>{session.type}</span>}</div>
+                {session.time && <p class="session-time">{session.time}</p>}
                 <p class="session-speaker">{session.speaker}{session.affiliation && session.affiliation !== '待定' ? ` · ${session.affiliation}` : ''}</p>
                 <p>{session.summary || '摘要待更新。'}</p>
               </article>

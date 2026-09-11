@@ -7,6 +7,12 @@ import EventCard from '../components/EventCard.astro';
 
 const events = await getCollection('events');
 const nextEvent = findNextEvent(events);
+const nextSpeakers = nextEvent?.data.sessions.length
+  ? nextEvent.data.sessions.map((session) => session.speaker).join('、')
+  : (nextEvent?.data.speaker || '待定');
+const nextAffiliations = nextEvent?.data.sessions.length
+  ? [...new Set(nextEvent.data.sessions.map((session) => session.affiliation).filter(Boolean))].join('、') || '待定'
+  : (nextEvent?.data.affiliation || '待定');
 const recentEvents = [...events]
   .filter((event) => event.data.status === '已结束')
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
@@ -46,8 +52,8 @@ const quickLinks = [
           <h3>{nextEvent.data.title || '报告题目待更新'}</h3>
           <dl class="event-meta">
             <div><dt>主持人</dt><dd>{nextEvent.data.host}</dd></div>
-            <div><dt>报告人</dt><dd>{nextEvent.data.speaker || '待定'}</dd></div>
-            <div><dt>单位</dt><dd>{nextEvent.data.affiliation || '待定'}</dd></div>
+            <div><dt>报告人</dt><dd>{nextSpeakers}</dd></div>
+            <div><dt>单位</dt><dd>{nextAffiliations}</dd></div>
             <div><dt>地点</dt><dd>{nextEvent.data.location}</dd></div>
           </dl>
           <a class="button" href={sitePath(`/events/${nextEvent.id}/`)}>查看活动详情</a>
