@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .astro/
+.codex-local/
 .env
 .env.*
 !.env.example

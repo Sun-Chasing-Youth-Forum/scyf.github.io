@@ -53,7 +53,7 @@ const sessions = event.data.sessions.length ? event.data.sessions : [{
                 {sessions.length > 1 && <p class="session-number">报告 {index + 1}</p>}
                 <div class="session-heading"><h3>{session.title}</h3>{session.type && <span>{session.type}</span>}</div>
                 <p class="session-speaker">{session.speaker}{session.affiliation && session.affiliation !== '待定' ? ` · ${session.affiliation}` : ''}</p>
-                <p>{session.summary || '摘要详见论坛手册。'}</p>
+                <p>{session.summary || '摘要待更新。'}</p>
               </article>
             ))}
           </div>

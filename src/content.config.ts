@@ -54,20 +54,6 @@ const training = defineCollection({
   })
 });
 
-const manuals = defineCollection({
-  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/manuals' }),
-  schema: z.object({
-    title: z.string(),
-    date: z.coerce.date(),
-    summary: z.string(),
-    files: z.array(z.object({
-      label: z.string(),
-      url: z.string(),
-      size: z.string().optional()
-    })).default([])
-  })
-});
-
 const about = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/about' }),
   schema: z.object({
@@ -76,4 +62,4 @@ const about = defineCollection({
   })
 });
 
-export const collections = { events, news, training, manuals, about };
+export const collections = { events, news, training, about };

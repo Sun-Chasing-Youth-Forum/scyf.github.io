@@ -3,8 +3,9 @@ import mdx from '@astrojs/mdx';
 
 const repository = process.env.GITHUB_REPOSITORY ?? '';
 const [owner = '', repositoryName = ''] = repository.split('/');
-const isOrganizationSite = repositoryName.toLowerCase() === `${owner.toLowerCase()}.github.io`;
-const site = process.env.SITE_URL || (owner ? `https://${owner}.github.io` : 'http://localhost:4321');
+const normalizedOwner = owner.toLowerCase();
+const isOrganizationSite = repositoryName.toLowerCase() === `${normalizedOwner}.github.io`;
+const site = process.env.SITE_URL || (normalizedOwner ? `https://${normalizedOwner}.github.io` : 'http://localhost:4321');
 const base = process.env.BASE_PATH || (!repositoryName || isOrganizationSite ? '/' : `/${repositoryName}`);
 
 export default defineConfig({

@@ -10,7 +10,7 @@
 - GitHub Actions 在 `main` 分支更新后自动检查、构建和部署；
 - GitHub Discussions 作为长期讨论区；
 - giscus 在每期活动详情页映射对应讨论；
-- 自动适配 `组织名.github.io` 根路径和普通项目仓库子路径。
+- 使用 Organization Pages 根地址 `https://sun-chasing-youth-forum.github.io/`。
 
 ## 本地运行
 
@@ -61,20 +61,21 @@ materials:
 
 在 `src/content/news/` 新增 Markdown 文件。必填字段为 `title`、`date`、`summary`；首页自动显示日期最新的三条。
 
-## 上传论坛手册或 PDF
+## 同步论坛日程
 
-1. 将 PDF 放到 `public/documents/`，文件名建议使用英文、数字和连字符；
-2. 打开 `src/content/manuals/forum-handbook.md`；
-3. 在 `files` 中增加：
+在线手册是论坛正式日程的权威数据源。为避免泄露手册中的账号、密码、会议口令和内部信息，网站不公开手册本身，也不在公开仓库保存带访问令牌的手册地址。
 
-```yaml
-files:
-  - label: "逐日青年论坛手册 2026 版"
-    url: "/documents/forum-handbook-2026.pdf"
-    size: "1.2 MB"
-```
+在已配置的维护工作区中，对 Codex 发送简短指令：
 
-活动附件和培训资料也使用相同的 `/documents/文件名` 写法。页面会自动添加 GitHub Pages 子路径，不能把仓库名称硬编码进 URL。
+> 同步论坛手册
+
+Codex 会读取本机私有同步源，对比 `src/content/events/`，仅更新发生变化的活动内容，保留网站特有的图片、标签、推荐阅读、外部资源、录像和补充说明；完成检查后提交并推送。详细约定见 `AGENTS.md`。
+
+新电脑或全新克隆中若没有本机私有同步源，只需在首次同步时把在线手册地址提供给 Codex。不要将地址写入公开仓库。
+
+## 上传公开 PDF 或附件
+
+仅将确认适合公开的培训资料或报告附件放入 `public/documents/`，文件名建议使用英文、数字和连字符；再在活动 `materials` 或培训 `resources` 中使用 `/documents/文件名` 登记。严禁上传论坛内部手册、账号、密码、会议口令、私密联系方式或内部系统信息。
 
 ## 添加培训资料
 
@@ -82,12 +83,12 @@ files:
 
 ## 部署到 GitHub Pages
 
-1. 在论坛专用 Organization 中创建公开仓库，推荐名称 `solar-youth-forum`；如希望使用组织根地址，则仓库名必须是 `<organization-name>.github.io`；
+1. Organization Pages 仓库固定使用 `sun-chasing-youth-forum.github.io`；
 2. 将本项目推送到仓库的 `main` 分支；
 3. 进入仓库 **Settings → Pages → Build and deployment**，将 Source 设为 **GitHub Actions**；
 4. 推送后查看 **Actions → Deploy Astro site to GitHub Pages**。成功后 Pages 地址会出现在部署任务中。
 
-普通项目仓库的地址为 `https://<organization-name>.github.io/solar-youth-forum/`；组织主页仓库地址为 `https://<organization-name>.github.io/`。
+正式网站地址为 `https://sun-chasing-youth-forum.github.io/`。
 
 绑定自定义域名时，在仓库 Pages 设置中填写域名，并创建 `public/CNAME`（内容只写域名）。同时新增 Actions Variable `SITE_URL`，值为完整地址，例如 `https://forum.example.org`。
 
@@ -116,7 +117,7 @@ files:
 .
 ├─ .github/workflows/deploy.yml     # 自动构建与 Pages 部署
 ├─ public/
-│  ├─ documents/                    # PDF、附件与下载资料
+│  ├─ documents/                    # 仅限适合公开的培训和报告附件
 │  └─ images/                       # 公共图片
 ├─ scripts/verify-build.mjs         # 路由、排序、日期与子路径校验
 ├─ src/
@@ -126,7 +127,6 @@ files:
 │  │  ├─ events/                    # 每期活动
 │  │  ├─ news/                      # 通知
 │  │  ├─ training/                  # 培训教程
-│  │  ├─ manuals/                   # 手册索引
 │  │  └─ about/                     # 论坛介绍与组织信息
 │  ├─ layouts/                      # 页面布局
 │  ├─ pages/                        # 路由页面
