@@ -95,12 +95,20 @@ Codex 会读取本机私有同步源，对比 `src/content/events/`，仅更新�
 ## 启用 GitHub Discussions
 
 1. 进入 **Settings → General → Features**，勾选 **Discussions**；
-2. 在 Discussions 中创建或整理以下分类：论坛公告、报告主题建议、太阳物理科学讨论、数据需求、数据分析与软件、培训需求、合作交流、论坛意见与建议；
-3. 另建一个供活动评论使用的分类，推荐名称为“活动讨论”，格式选择“开放式讨论”。
+2. 为降低广告和无关内容，只保留以下四类：
+
+- `论坛公告`：Announcement，仅维护人员可新建；
+- `活动讨论`：Announcement，供 giscus 自动建帖，外部用户不能自行开帖；
+- `科学问题与数据分析`：Question and answer；
+- `建议、培训与合作`：Question and answer 或开放讨论。
+
+3. 评论者必须登录 GitHub。发现广告时，隐藏或删除内容并向 GitHub 举报；讨论失控时及时锁定。仓库的 `giscus.json` 将嵌入来源限制为正式网站，避免其他网站借用本仓库评论区。
 
 ## 配置 giscus
 
-1. 确保仓库公开、Discussions 已启用，并为仓库安装 giscus GitHub App；
+当前正式仓库已经启用 Discussions，并已安装 giscus GitHub App。若以后迁移仓库，可按以下步骤重新配置：
+
+1. 确保新仓库公开、Discussions 已启用，并为该仓库安装 giscus GitHub App；
 2. 打开 [giscus 配置页](https://giscus.app/zh-CN)，选择仓库、`pathname` 映射和“活动讨论”分类；
 3. 在仓库 **Settings → Secrets and variables → Actions → Variables** 新增：
 

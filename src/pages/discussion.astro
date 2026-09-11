@@ -3,18 +3,33 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 import { community } from '../config/community';
 
-const categories = ['论坛公告', '报告主题建议', '太阳物理科学讨论', '数据需求', '数据分析与软件', '培训需求', '合作交流', '论坛意见与建议'];
+const categories = [
+  ['论坛公告', '仅由维护人员发布正式通知。'],
+  ['活动讨论', '每期活动页面的 giscus 评论集中归档于此。'],
+  ['科学问题与数据分析', '采用问答形式，适合科学、数据和软件问题。'],
+  ['建议、培训与合作', '收集报告主题、培训需求和科研合作建议。']
+];
+
+const rules = [
+  '评论必须登录 GitHub；请使用能够识别学术身份的账号。',
+  '禁止广告、营销、重复灌水、无关外链和冒充他人。',
+  '外部链接必须说明与讨论的关系，不要发布来源不明的下载地址。',
+  '违规内容将被隐藏或删除，讨论可被锁定，持续违规账号可被组织屏蔽。'
+];
 ---
 <BaseLayout title="讨论交流" description="逐日青年论坛 GitHub Discussions 讨论区入口。">
   <PageHeader eyebrow="COMMUNITY" title="讨论交流" intro="围绕报告主题、科学问题、数据软件与合作需求持续交流。" />
   <section class="section container narrow discussion-layout">
     <div>
       <h2>讨论分类</h2>
-      <div class="discussion-grid">{categories.map((category, index) => <article><span>{String(index + 1).padStart(2, '0')}</span><h3>{category}</h3></article>)}</div>
+      <div class="discussion-grid">{categories.map(([category, description], index) => <article><span>{String(index + 1).padStart(2, '0')}</span><h3>{category}</h3><p>{description}</p></article>)}</div>
+      <h2>交流规则</h2>
+      <ul>{rules.map((rule) => <li>{rule}</li>)}</ul>
+      <p class="muted">完整规则见仓库中的《逐日青年论坛社区交流规范》。</p>
     </div>
     <aside class="discussion-callout">
       <p class="eyebrow">GITHUB DISCUSSIONS</p><h2>进入论坛讨论区</h2>
-      <p>GitHub Discussions 便于长期保存公开讨论、搜索历史问题，并与每期活动页面的 giscus 评论互通。</p>
+      <p>GitHub Discussions 便于长期保存公开讨论、搜索历史问题，并与每期活动页面的 giscus 评论互通。发布内容前请阅读交流规则。</p>
       {community.discussionsUrl ? <a class="button" href={community.discussionsUrl}>进入讨论区</a> : <p class="muted">仓库确定并启用 Discussions 后，入口会自动生效。</p>}
     </aside>
   </section>
