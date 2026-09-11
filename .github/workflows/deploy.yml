@@ -1,0 +1,60 @@
+name: Deploy Astro site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_GITHUB_REPOSITORY: ${{ github.repository }}
+      PUBLIC_GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
+      PUBLIC_GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
+      PUBLIC_GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
+      PUBLIC_CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Install dependencies
+        run: npm ci
+      - name: Check content and types
+        run: npm run check
+      - name: Build site
+        run: npm run build
+      - name: Verify generated routes and links
+        run: npm run test:content
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
