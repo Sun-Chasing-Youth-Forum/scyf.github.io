@@ -1,0 +1,30 @@
+---
+import { sitePath } from '../utils/paths';
+const items = [
+  ['首页', '/'],
+  ['活动日程', '/events/'],
+  ['往期活动', '/archive/'],
+  ['论坛手册', '/handbook/'],
+  ['培训资料', '/training/'],
+  ['讨论交流', '/discussion/'],
+  ['关于论坛', '/about/']
+];
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href={sitePath('/')} aria-label="逐日青年论坛首页">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span><strong>逐日青年论坛</strong><small>Sun-Chasing Youth Forum</small></span>
+    </a>
+    <nav class="desktop-nav" aria-label="主导航">
+      {items.map(([label, href]) => <a href={sitePath(href)}>{label}</a>)}
+    </nav>
+    <details class="mobile-nav">
+      <summary>菜单</summary>
+      <nav aria-label="移动端主导航">
+        {items.map(([label, href]) => <a href={sitePath(href)}>{label}</a>)}
+      </nav>
+    </details>
+  </div>
+</header>

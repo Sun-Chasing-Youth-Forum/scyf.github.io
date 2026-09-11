@@ -1,0 +1,23 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { formatDate } from '../utils/events';
+import { sitePath } from '../utils/paths';
+import StatusBadge from './StatusBadge.astro';
+
+interface Props { event: CollectionEntry<'events'>; compact?: boolean; }
+const { event, compact = false } = Astro.props;
+---
+<article class:list={['event-card', { compact }] }>
+  <div class="event-card-top">
+    <p>第 {event.data.issue} 期</p>
+    <StatusBadge status={event.data.status} />
+  </div>
+  <p class="event-card-date">{formatDate(event.data.date)} · {event.data.time}</p>
+  <h3><a href={sitePath(`/events/${event.id}/`)}>{event.data.title || '报告题目待更新'}</a></h3>
+  <dl>
+    <div><dt>主持人</dt><dd>{event.data.host}</dd></div>
+    <div><dt>报告人</dt><dd>{event.data.speaker || '待定'}</dd></div>
+    <div><dt>单位</dt><dd>{event.data.affiliation || '待定'}</dd></div>
+  </dl>
+  <a class="card-link" href={sitePath(`/events/${event.id}/`)}>查看详情 <span aria-hidden="true">→</span></a>
+</article>

@@ -1,0 +1,7 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { sitePath } from '../utils/paths';
+---
+<BaseLayout title="页面未找到">
+  <section class="section container narrow empty-state"><p class="eyebrow">404</p><h1>页面未找到</h1><p>你访问的页面可能已移动，或地址有误。</p><a class="button" href={sitePath('/')}>返回首页</a></section>
+</BaseLayout>

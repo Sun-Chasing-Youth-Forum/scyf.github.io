@@ -1,0 +1,22 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import { formatDate } from '../utils/events';
+import { sitePath } from '../utils/paths';
+
+const manuals = (await getCollection('manuals')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const rendered = await Promise.all(manuals.map(async (manual) => ({ manual, Content: (await render(manual)).Content })));
+---
+<BaseLayout title="论坛手册" description="逐日青年论坛手册、组织说明和报告人指南。">
+  <PageHeader eyebrow="HANDBOOK" title="论坛手册" intro="集中发布论坛组织说明、报告人指南和其他公开文档。" />
+  <section class="section container narrow stack-list">
+    {rendered.map(({ manual, Content }) => (
+      <article class="document-card">
+        <div><time datetime={manual.data.date.toISOString()}>{formatDate(manual.data.date, { weekday: undefined })}</time><h2>{manual.data.title}</h2><p>{manual.data.summary}</p></div>
+        {manual.data.files.length ? <div class="document-actions">{manual.data.files.map((file) => <a class="button button-secondary" href={sitePath(file.url)}>在线查看 / 下载{file.size ? ` · ${file.size}` : ''}</a>)}</div> : <div class="notice-box"><p>PDF 文档正在整理，发布后会在此提供在线查看和下载。</p></div>}
+        <div class="prose"><Content /></div>
+      </article>
+    ))}
+  </section>
+</BaseLayout>

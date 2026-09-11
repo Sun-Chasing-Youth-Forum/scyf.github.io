@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import EventCard from '../components/EventCard.astro';
+
+const events = (await getCollection('events'))
+  .filter((event) => event.data.status === '已结束')
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const grouped = Object.groupBy(events, (event) => String(event.data.date.getFullYear()));
+const years = Object.keys(grouped).sort((a, b) => Number(b) - Number(a));
+---
+<BaseLayout title="往期活动" description="逐日青年论坛往期活动按年份归档。">
+  <PageHeader eyebrow="ARCHIVE" title="往期活动" intro="按年份查阅历期主持人、报告人、单位与报告主题。" />
+  <section class="section container narrow archive-list">
+    {years.length ? years.map((year) => (
+      <section><h2>{year}</h2><div class="card-grid">{grouped[year]?.map((event) => <EventCard event={event} compact />)}</div></section>
+    )) : <div class="empty-state"><h2>暂无往期活动</h2><p>活动结束后会自动归档到这里。</p></div>}
+  </section>
+</BaseLayout>

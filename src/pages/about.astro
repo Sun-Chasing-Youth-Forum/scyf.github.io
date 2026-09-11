@@ -1,0 +1,16 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import { forum } from '../config/site';
+
+const sections = (await getCollection('about')).sort((a, b) => a.data.order - b.data.order);
+const rendered = await Promise.all(sections.map(async (entry) => ({ entry, Content: (await render(entry)).Content })));
+---
+<BaseLayout title="关于论坛" description="逐日青年论坛简介、宗旨、组织方式与联系方式。">
+  <PageHeader eyebrow="ABOUT" title="关于论坛" intro={forum.description} />
+  <section class="section container reading-width about-sections">
+    {rendered.map(({ entry, Content }) => <section class="prose"><h2>{entry.data.title}</h2><Content /></section>)}
+    {forum.contactEmail && <section class="contact-box"><h2>联系邮箱</h2><a href={`mailto:${forum.contactEmail}`}>{forum.contactEmail}</a></section>}
+  </section>
+</BaseLayout>

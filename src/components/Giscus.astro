@@ -1,0 +1,34 @@
+---
+import { community, giscusEnabled } from '../config/community';
+---
+<section class="comments" aria-labelledby="comments-title">
+  <div class="section-heading compact-heading">
+    <div><p class="eyebrow">DISCUSSION</p><h2 id="comments-title">活动讨论</h2></div>
+  </div>
+  {giscusEnabled ? (
+    <script
+      is:inline
+      src="https://giscus.app/client.js"
+      data-repo={community.giscus.repo}
+      data-repo-id={community.giscus.repoId}
+      data-category={community.giscus.category}
+      data-category-id={community.giscus.categoryId}
+      data-mapping="pathname"
+      data-strict="1"
+      data-reactions-enabled="1"
+      data-emit-metadata="0"
+      data-input-position="top"
+      data-theme="light"
+      data-lang="zh-CN"
+      data-loading="lazy"
+      crossorigin="anonymous"
+      async
+    ></script>
+  ) : (
+    <div class="notice-box">
+      <p><strong>活动讨论入口正在配置。</strong></p>
+      <p>GitHub Discussions 和 giscus 启用后，本期页面会自动显示评论区，网站其他功能不受影响。</p>
+      {community.discussionsUrl && <a class="text-link" href={community.discussionsUrl}>前往 GitHub Discussions →</a>}
+    </div>
+  )}
+</section>

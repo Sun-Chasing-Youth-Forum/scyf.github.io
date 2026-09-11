@@ -1,0 +1,23 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import { sitePath } from '../../utils/paths';
+
+const topics = (await getCollection('training')).sort((a, b) => a.data.order - b.data.order);
+const categories = ['ASO-S', 'HXI', 'SDO', 'Solar Orbiter / STIX', 'SSWIDL', 'Python / SunPy', '数据分析教程'] as const;
+const grouped = Object.groupBy(topics, (topic) => topic.data.category);
+---
+<BaseLayout title="数据与软件培训" description="太阳物理数据、软件与分析教程资料区。">
+  <PageHeader eyebrow="TRAINING" title="数据与软件培训" intro="按任务与数据源组织的教程、手册、示例代码和资料下载区。" />
+  <section class="section container narrow training-sections">
+    {categories.map((category) => (
+      <section>
+        <div class="category-heading"><h2>{category}</h2><span>{grouped[category]?.length || 0} 项资料</span></div>
+        {grouped[category]?.length ? <div class="training-grid">{grouped[category]?.map((topic) => (
+          <a class="training-card" href={sitePath(`/training/${topic.id}/`)}><h3>{topic.data.title}</h3><p>{topic.data.summary}</p><span>阅读资料 →</span></a>
+        ))}</div> : <p class="category-empty">资料待补充</p>}
+      </section>
+    ))}
+  </section>
+</BaseLayout>

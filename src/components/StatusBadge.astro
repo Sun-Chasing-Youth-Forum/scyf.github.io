@@ -1,0 +1,5 @@
+---
+interface Props { status: '待定' | '已公布' | '已结束'; }
+const { status } = Astro.props;
+---
+<span class:list={['status', `status-${status}`]}>{status}</span>

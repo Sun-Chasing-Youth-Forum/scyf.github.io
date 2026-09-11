@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import EventCard from '../../components/EventCard.astro';
+import { sortEventsAsc } from '../../utils/events';
+
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+const events = sortEventsAsc(await getCollection('events'));
+const upcoming = events.filter((event) => event.data.status !== '已结束' && event.data.date.getTime() >= today);
+---
+<BaseLayout title="活动日程" description="逐日青年论坛未来活动安排。">
+  <PageHeader eyebrow="PROGRAM" title="活动日程" intro="论坛原则上每两周举办一次。活动时间、主持人和报告信息以各期详情页为准。" />
+  <section class="section container narrow">
+    {upcoming.length ? <div class="card-grid">{upcoming.map((event) => <EventCard event={event} />)}</div> : (
+      <div class="empty-state"><h2>新一期活动正在筹备</h2><p>活动信息确认后会自动显示在这里，也可在往期活动中浏览历史记录。</p></div>
+    )}
+  </section>
+</BaseLayout>

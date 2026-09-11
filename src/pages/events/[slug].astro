@@ -1,0 +1,56 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import StatusBadge from '../../components/StatusBadge.astro';
+import Giscus from '../../components/Giscus.astro';
+import { formatDate } from '../../utils/events';
+import { sitePath } from '../../utils/paths';
+
+export async function getStaticPaths() {
+  const events = await getCollection('events');
+  return events.map((event) => ({ params: { slug: event.id }, props: { event } }));
+}
+
+interface Props { event: CollectionEntry<'events'>; }
+const { event } = Astro.props;
+const { Content } = await render(event);
+const display = (value?: string) => value || '待定';
+---
+<BaseLayout title={`第 ${event.data.issue} 期活动`} description={event.data.summary || '逐日青年论坛活动详情。'}>
+  <article>
+    <header class="event-detail-header">
+      <div class="container narrow">
+        <a class="breadcrumb" href={sitePath('/events/')}>活动日程</a>
+        <div class="detail-kicker"><span>第 {event.data.issue} 期</span><StatusBadge status={event.data.status} /></div>
+        <h1>{display(event.data.title)}</h1>
+        <p>{formatDate(event.data.date)} · {event.data.time}</p>
+      </div>
+    </header>
+    <div class="section container narrow detail-layout">
+      <div class="detail-main">
+        <section>
+          <h2>活动信息</h2>
+          <dl class="detail-meta">
+            <div><dt>主持人</dt><dd>{event.data.host}</dd></div>
+            <div><dt>报告人</dt><dd>{display(event.data.speaker)}</dd></div>
+            <div><dt>报告人单位</dt><dd>{display(event.data.affiliation)}</dd></div>
+            <div><dt>地点</dt><dd>{event.data.location}</dd></div>
+          </dl>
+          {event.data.meetingUrl && event.data.status !== '已结束' && <a class="button" href={event.data.meetingUrl}>进入线上会议</a>}
+        </section>
+        <section>
+          <h2>报告摘要</h2>
+          <p>{event.data.summary || '待定'}</p>
+        </section>
+        <section class="prose"><Content /></section>
+        <section>
+          <h2>相关资料</h2>
+          {event.data.materials.length ? (
+            <ul class="resource-list">{event.data.materials.map((item) => <li><a href={item.url.startsWith('/') ? sitePath(item.url) : item.url}>{item.label}</a></li>)}</ul>
+          ) : <p class="muted">本期暂未发布相关资料。</p>}
+        </section>
+        <Giscus />
+      </div>
+    </div>
+  </article>
+</BaseLayout>
