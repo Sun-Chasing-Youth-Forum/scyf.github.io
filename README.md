@@ -10,7 +10,7 @@
 - GitHub Actions 在 `main` 分支更新后自动检查、构建和部署；
 - GitHub Discussions 作为长期讨论区；
 - giscus 在每期活动详情页映射对应讨论；
-- 当前仓库 `Sun-Chasing-Youth-Forum/scyf.github.io` 使用项目 Pages 地址 `https://sun-chasing-youth-forum.github.io/scyf.github.io/`。
+- 当前仓库 `scyf-pmo/scyf-pmo.github.io` 使用 Organization Pages 根地址 `https://scyf-pmo.github.io/`。
 
 ## 本地运行
 
@@ -83,12 +83,12 @@ Codex 会读取本机私有同步源，对比 `src/content/events/`，仅更新�
 
 ## 部署到 GitHub Pages
 
-1. 当前仓库名为 `scyf.github.io`，归属于 `Sun-Chasing-Youth-Forum` Organization；
+1. 当前仓库名为 `scyf-pmo.github.io`，归属于 `scyf-pmo` Organization；两者对应以使用根地址；
 2. 将本项目推送到仓库的 `main` 分支；
 3. 进入仓库 **Settings → Pages → Build and deployment**，将 Source 设为 **GitHub Actions**；
 4. 推送后查看 **Actions → Deploy Astro site to GitHub Pages**。成功后 Pages 地址会出现在部署任务中。
 
-正式网站地址为 `https://sun-chasing-youth-forum.github.io/scyf.github.io/`。GitHub Pages 的根地址由账号或 Organization 名称决定；仅将仓库改名为 `scyf.github.io` 不会获得 `https://scyf.github.io/`。若要根地址，需要该网站归属于名为 `scyf` 的账号，或绑定自己拥有的独立域名。
+正式网站地址为 `https://scyf-pmo.github.io/`。Astro 根据 GitHub Actions 提供的仓库全名自动设置 `site` 为该域名、`base` 为 `/`，所有页面和静态资源均使用根路径。工作流会自动使用当前仓库的 Discussions 地址；giscus 允许嵌入的域名集中维护在 `giscus.json` 中。
 
 绑定自定义域名时，在仓库 Pages 设置中填写域名，并创建 `public/CNAME`（内容只写域名）。同时新增 Actions Variable `SITE_URL`，值为完整地址，例如 `https://forum.example.org`。
 
