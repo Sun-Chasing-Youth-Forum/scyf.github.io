@@ -1,7 +1,10 @@
-const { app, BrowserWindow, ipcMain, shell, safeStorage, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, safeStorage, dialog, net } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const diagnostics = process.argv.includes('--diagnostics');
+if (diagnostics) app.setPath('userData', require('node:fs').mkdtempSync(path.join(require('node:os').tmpdir(), 'scyf-manager-check-')));
+let bootObserved = false, syncObserved = false;
 let window, backend, flow, model, state, config, user = null, busy = false, authExpires = null, remembering = false;
 const uiFile = path.join(__dirname, '../ui/index.html');
 const dataFile = name => path.join(app.getPath('userData'), name);
@@ -102,7 +105,13 @@ app.whenReady().then(async () => {
   config = await readJson(path.join(__dirname, '../app-config.json'), null);
   model = await import('../core/content.mjs');
   const { GitHub, DeviceFlow } = await import('../core/github.mjs');
-  backend = new GitHub(config); flow = new DeviceFlow(config);
+  // Chromium's network stack follows the user's OS proxy and certificate configuration.
+  const fetcher = async (url, options) => {
+    const response = await net.fetch(url, options);
+    if (diagnostics) console.log('network:', new URL(url).hostname, response.status);
+    return response;
+  };
+  backend = new GitHub(config, { fetcher }); flow = new DeviceFlow(config, fetcher);
   const sample = await readJson(path.join(__dirname, '../ui/sample.json'), null);
   state = await readJson(dataFile('drafts.json'), { snapshot: sample, changes: [], lastPublish: null });
   if (state.snapshot?.repository !== config.repository || !Array.isArray(state.changes)) state = { snapshot: sample, changes: [], lastPublish: null };
@@ -113,7 +122,8 @@ app.whenReady().then(async () => {
       else await fs.rm(dataFile('auth.bin'), { force: true });
     }
   } catch { backend.token = ''; user = null; }
-  window = new BrowserWindow({ width: 1440, height: 960, minWidth: 960, minHeight: 700, backgroundColor: '#f5f6f2', title: '逐日青年论坛 · 网站管理器', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, navigateOnDragDrop: false } });
+  window = new BrowserWindow({ show: !diagnostics, width: 1440, height: 960, minWidth: 960, minHeight: 700, backgroundColor: '#f5f6f2', title: '逐日青年论坛 · 网站管理器', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, navigateOnDragDrop: false } });
+  if (diagnostics) window.webContents.on('console-message', (_event, ...args) => console.log('renderer:', ...args));
   window.removeMenu();
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', event => event.preventDefault());
@@ -123,13 +133,21 @@ app.whenReady().then(async () => {
   });
   window.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   ipcMain.handle('manager', async (event, request) => {
+    if (diagnostics) console.log('ipc:', request.method, event.senderFrame?.url, pathToFileURL(uiFile).href);
     if (event.sender !== window.webContents || event.senderFrame?.routingId !== window.webContents.mainFrame.routingId || event.senderFrame?.processId !== window.webContents.mainFrame.processId || event.senderFrame?.url !== pathToFileURL(uiFile).href) return { ok: false, error: '无效的请求来源。' };
-    try { return { ok: true, value: await handle(request.method, request.data) }; }
+    try {
+      const value = await handle(request.method, request.data);
+      if (request.method === 'bootstrap') bootObserved = true;
+      if (request.method === 'sync') syncObserved = true;
+      return { ok: true, value };
+    }
     catch (error) {
+      if (diagnostics) console.log('operation-error:', request.method, error.code, error.message);
       if (error.code === 'AUTH') { backend.token = ''; user = null; await fs.rm(dataFile('auth.bin'), { force: true }); }
       return { ok: false, error: error.message || '操作失败，草稿已保留。', code: error.code };
     }
   });
   await window.loadFile(uiFile);
+  if (diagnostics) setTimeout(() => { console.log(JSON.stringify({ bootstrap: bootObserved, synced: syncObserved, source: state.snapshot.source, records: state.snapshot.records.length })); app.exit(bootObserved && syncObserved ? 0 : 1); }, 45000);
 }).catch(error => { dialog.showErrorBox('启动失败', error.message); app.quit(); });
 app.on('window-all-closed', () => app.quit());
