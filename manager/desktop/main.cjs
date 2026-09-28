@@ -6,39 +6,71 @@ const diagnostics = process.argv.includes('--diagnostics');
 if (diagnostics) app.setPath('userData', require('node:fs').mkdtempSync(path.join(require('node:os').tmpdir(), 'scyf-manager-check-')));
 let bootObserved = false, syncObserved = false;
 let window, backend, flow, model, state, config, user = null, busy = false, authExpires = null, remembering = false;
+let authEpoch = 0, credentialWrite = Promise.resolve(), devicePoll = null;
+if (!diagnostics && !app.requestSingleInstanceLock()) app.exit(0);
+app.on('second-instance', () => { if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus(); } });
 const uiFile = path.join(__dirname, '../ui/index.html');
 const dataFile = name => path.join(app.getPath('userData'), name);
 async function readJson(file, fallback) { try { return JSON.parse(await fs.readFile(file, 'utf8')); } catch { return fallback; } }
 async function atomic(file, content) { await fs.mkdir(path.dirname(file), { recursive: true }); await fs.writeFile(`${file}.tmp`, content, { mode: 0o600 }); await fs.rename(`${file}.tmp`, file); }
 const persist = () => atomic(dataFile('drafts.json'), JSON.stringify(state));
-async function auth(token, remember, expiresAt = null) {
+const writeCredential = task => (credentialWrite = credentialWrite.catch(() => {}).then(task));
+async function auth(token, remember, expiresAt = null, valid = () => true) {
   if (typeof token !== 'string' || token.length < 15 || token.length > 1000 || /\s/.test(token)) throw new Error('请输入有效的个人 GitHub 令牌。');
-  backend.token = token;
-  try { user = await backend.identity(); } catch (error) { backend.token = ''; user = null; throw error; }
+  const epoch = authEpoch;
+  const candidate = new backend.constructor(config, { fetcher: backend.fetcher }); candidate.token = token;
+  const identity = await candidate.identity();
+  const active = () => epoch === authEpoch && valid();
+  if (!active()) return { waiting: true };
+  const save = Boolean(remember) && safeStorage.isEncryptionAvailable();
+  await writeCredential(async () => {
+    if (!active()) return;
+    if (save) await atomic(dataFile('auth.bin'), safeStorage.encryptString(JSON.stringify({ token, expiresAt })));
+    else await fs.rm(dataFile('auth.bin'), { force: true });
+  });
+  if (!active()) return { waiting: true };
+  backend.token = token; user = identity;
   authExpires = expiresAt;
-  remembering = Boolean(remember);
-  if (remember) {
-    if (!safeStorage.isEncryptionAvailable()) { remembering = false; await fs.rm(dataFile('auth.bin'), { force: true }); }
-    else await atomic(dataFile('auth.bin'), safeStorage.encryptString(JSON.stringify({ token, expiresAt })));
-  } else await fs.rm(dataFile('auth.bin'), { force: true });
+  remembering = save;
   return { user, remembered: remembering };
 }
 async function handle(method, data = {}) {
-  if (method === 'bootstrap') return { config: { ...config, clientId: (await readJson(dataFile('settings.json'), {})).clientId || config.clientId }, state, user, secureStorage: safeStorage.isEncryptionAvailable(), desktop: true };
+  if (method === 'bootstrap') return { config: { ...config, clientId: config.clientId || (await readJson(dataFile('settings.json'), {})).clientId, version: app.getVersion() }, state, user, secureStorage: safeStorage.isEncryptionAvailable(), desktop: true };
   if (method === 'open') {
     const u = new URL(data.url);
     if (u.protocol !== 'https:' || !['github.com', 'scyf-pmo.github.io', 'docs.github.com'].includes(u.hostname) || u.username || u.password) throw new Error('此链接不在允许打开的网站列表中。');
     await shell.openExternal(u.href); return true;
   }
-  if (method === 'login') return auth(data.token?.trim(), data.remember);
-  if (method === 'logout') { backend.token = ''; user = null; authExpires = null; flow.pending = null; await fs.rm(dataFile('auth.bin'), { force: true }); return true; }
+  if (method === 'login') { authEpoch++; flow.cancel(); return auth(data.token?.trim(), data.remember); }
+  if (method === 'logout') { authEpoch++; backend.token = ''; user = null; authExpires = null; flow.cancel(); await writeCredential(() => fs.rm(dataFile('auth.bin'), { force: true })); return true; }
   if (method === 'startDevice') {
-    const result = await flow.start(data.clientId?.trim());
-    await atomic(dataFile('settings.json'), JSON.stringify({ clientId: data.clientId.trim() }));
-    remembering = Boolean(data.remember); return result;
+    authEpoch++; const epoch = authEpoch;
+    const clientId = config.clientId || data.clientId?.trim();
+    const result = await flow.start(clientId);
+    if (epoch !== authEpoch) return { canceled: true };
+    await atomic(dataFile('settings.json'), JSON.stringify({ clientId }));
+    if (flow.pending) flow.pending.remember = Boolean(data.remember);
+    return result;
   }
-  if (method === 'pollDevice') { const result = await flow.poll(); return result.waiting ? result : auth(result.token, remembering, result.expiresAt); }
-  if (method === 'cancelDevice') { flow.pending = null; return true; }
+  if (method === 'pollDevice') {
+    if (devicePoll) return { waiting: true, retryAfterMs: 3000 };
+    const pending = flow.pending;
+    devicePoll = (async () => {
+      const result = await flow.poll();
+      if (result.waiting) return result;
+      try {
+        const loggedIn = await auth(result.token, pending.remember, result.expiresAt, () => flow.pending === pending);
+        if (loggedIn.user) flow.cancel();
+        return loggedIn;
+      } catch (error) {
+        if (flow.pending !== pending) return { waiting: true };
+        if (['NETWORK', 'RATE'].includes(error.code)) return { waiting: true, retryAfterMs: 10000, message: '浏览器授权已收到，正在重试验证 GitHub 身份，请勿重复授权…' };
+        flow.cancel(); throw error;
+      }
+    })();
+    try { return await devicePoll; } finally { devicePoll = null; }
+  }
+  if (method === 'cancelDevice') { authEpoch++; flow.cancel(); return true; }
   if (method === 'sync') {
     if (busy) throw new Error('正在发布，请稍后再同步。');
     const latest = await backend.snapshot();
@@ -122,7 +154,8 @@ app.whenReady().then(async () => {
       else await fs.rm(dataFile('auth.bin'), { force: true });
     }
   } catch { backend.token = ''; user = null; }
-  window = new BrowserWindow({ show: !diagnostics, width: 1440, height: 960, minWidth: 960, minHeight: 700, backgroundColor: '#f5f6f2', title: '逐日青年论坛 · 网站管理器', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, navigateOnDragDrop: false } });
+  app.setAppUserModelId('org.scyf.website-manager');
+  window = new BrowserWindow({ show: !diagnostics, icon: path.join(__dirname, '../assets/icon.png'), width: 1440, height: 960, minWidth: 960, minHeight: 700, backgroundColor: '#f5f6f2', title: '逐日青年论坛 · 网站管理器', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, navigateOnDragDrop: false } });
   if (diagnostics) window.webContents.on('console-message', (_event, ...args) => console.log('renderer:', ...args));
   window.removeMenu();
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));

@@ -15,6 +15,18 @@ const titleOf = r => r.kind === 'events' ? `第 ${r.data.issue} 期 · ${eventTi
 function badge(status, draft = false) { return `<span class="badge ${draft ? 'draft' : status === '已公布' ? 'announced' : status === '待定' ? 'pending' : ''}">${esc(draft ? '草稿' : status)}</span>`; }
 let state, user, config, desktop = false, current = 'overview', selected = null, isNew = false, dirty = false, working = false, search = '', filter = '', timer, deviceTimer, selectedTab = 'all';
 let secureStorage = false;
+let deviceEpoch = 0, deviceActive = false;
+const icons = {
+  overview: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  events: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2m-8 3h2"/>',
+  news: '<path d="M4 5h16v14H4zM8 9h8m-8 4h8m-8 3h5"/>',
+  training: '<path d="m2 8 10-5 10 5-10 5L2 8Zm4 3v6c4 3 8 3 12 0v-6m4-3v8"/>',
+  assets: '<path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/>',
+  about: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.2"/>',
+  history: '<path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-5v6l4 2"/>',
+  settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--ink)"/><circle cx="15" cy="17" r="3" fill="var(--ink)"/>'
+};
+const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
 async function demoBridge() {
   const snapshot = await (await fetch('sample.json')).json();
   let saved;
@@ -56,8 +68,8 @@ function toast(message, error = false) {
   timer = setTimeout(() => { el.hidden = true; }, error ? 14000 : 5000);
 }
 function navigation() {
-  const menu = [['overview', '◫'], ['events', '▦'], ['news', '☷'], ['training', '◇'], ['assets', '↥'], ['about', '◎'], ['history', '◷'], ['settings', '⚙']];
-  $('#navigation').innerHTML = menu.map(([key, icon], index) => `${index === 6 ? '<div class="nav-divider"></div>' : ''}<button class="${current === key ? 'active' : ''}" data-nav="${key}" title="${labels[key]}" ${current === key ? 'aria-current="page"' : ''}><span class="nav-icon">${icon}</span><span class="nav-label">${labels[key]}</span></button>`).join('');
+  const menu = ['overview', 'events', 'news', 'training', 'assets', 'about', 'history', 'settings'];
+  $('#navigation').innerHTML = menu.map((key, index) => `${index === 6 ? '<div class="nav-divider"></div>' : ''}<button class="${current === key ? 'active' : ''}" data-nav="${key}" title="${labels[key]}" ${current === key ? 'aria-current="page"' : ''}><span class="nav-icon">${icon(key)}</span><span class="nav-label">${labels[key]}</span></button>`).join('');
   $('#breadcrumb').textContent = `工作台 / ${labels[current]}${selected ? ' / 内容编辑' : ''}`;
   $('#connection').textContent = working ? '正在处理…' : state.snapshot.source === 'remote' ? '已读取 GitHub' : '离线体验';
   $('#connection').className = `connection${state.snapshot.source === 'remote' ? ' connected' : ''}`;
@@ -133,7 +145,7 @@ function readEditor() {
 function settings() {
   return heading('账号与连接', '每位维护者使用自己的 GitHub 账号；论坛负责人统一管理仓库权限。') +
   `${!desktop ? '<div class="notice">当前是离线界面预览。登录、附件选择和真实发布在桌面版中使用。</div>' : ''}
-  <div class="settings-grid"><section class="form-card"><h2>${user ? '当前账号' : '登录 GitHub'}</h2>${user ? `<h3>${esc(user.name)}</h3><p>@${esc(user.login)} · ${user.canPublish ? '已确认仓库 Write 权限；最终发布还取决于令牌权限和分支规则。' : '只读权限。请联系论坛负责人加入维护团队。'}</p><button class="button secondary" data-action="logout">退出登录</button><p class="subtle">退出会移除本机保存的登录凭据，本地内容草稿仍保留。</p>` : `<p>推荐使用论坛 GitHub App 授权。在浏览器确认个人身份后即可返回管理器。</p>${input('clientId', config.clientId, { label: '论坛 GitHub App 的 Client ID', hint: '由论坛负责人首次提供；这是公开标识，不是密码。' })}<label class="inline-check"><input type="checkbox" id="remember-device" ${secureStorage ? 'checked' : ''} ${secureStorage ? '' : 'disabled'}> 安全保存登录（使用系统加密）</label><button class="button" data-action="device-login">通过浏览器登录 ↗</button><details ${config.clientId ? '' : 'open'}><summary>初版可用：个人细粒度令牌登录</summary><p>选择 scyf-pmo 组织和网站仓库，授予 Contents 读写、Actions 只读。若组织要求审批，需先由管理员批准。</p><label class="field">个人访问令牌<input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label><label class="inline-check"><input type="checkbox" id="remember-token" ${secureStorage ? 'checked' : ''} ${secureStorage ? '' : 'disabled'}> 使用系统加密记住登录</label><div class="heading-actions"><button class="button secondary" data-action="token-login">验证并登录</button><button class="text-button" data-action="open-token">前往 GitHub 创建 →</button></div></details>`}</section>
+  <div class="settings-grid"><section class="form-card"><h2>${user ? '当前账号' : '登录 GitHub'}</h2>${user ? `<div class="notice success">已登录 GitHub：${esc(user.login)}</div><h3>${esc(user.name)}</h3><p>@${esc(user.login)} · ${user.canPublish ? '已确认仓库 Write 权限；最终发布还取决于令牌权限和分支规则。' : esc(user.permissionMessage || '当前为只读权限。请确认 App 已安装到网站仓库，并由负责人授予账号 Write 权限。')}</p><button class="button secondary" data-action="logout">退出登录</button><p class="subtle">退出会移除本机保存的登录凭据，本地内容草稿仍保留。</p>` : `<p>使用论坛 GitHub App 授权。浏览器显示 All set 后返回管理器，稍候即可自动显示账号。</p><label class="field">论坛 GitHub App 的 Client ID<input name="clientId" value="${esc(config.clientId)}" ${config.clientId ? 'readonly' : ''}><span class="field-hint">${config.clientId ? '已内置论坛 App，无需维护者填写。' : '离线预览不支持真实登录。'}</span></label><label class="inline-check"><input type="checkbox" id="remember-device" ${secureStorage ? 'checked' : ''} ${secureStorage ? '' : 'disabled'}> 安全保存登录（使用系统加密）</label><button class="button" data-action="device-login">通过浏览器登录 ↗</button><details><summary>备用方式：个人细粒度令牌登录</summary><p>选择 scyf-pmo 组织和网站仓库，授予 Contents 读写、Actions 只读。若组织要求审批，需先由管理员批准。</p><label class="field">个人访问令牌<input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label><label class="inline-check"><input type="checkbox" id="remember-token" ${secureStorage ? 'checked' : ''} ${secureStorage ? '' : 'disabled'}> 使用系统加密记住登录</label><div class="heading-actions"><button class="button secondary" data-action="token-login">验证并登录</button><button class="text-button" data-action="open-token">前往 GitHub 创建 →</button></div></details>`}</section>
   <section class="form-card"><h2>当前管理的网站</h2><p>逐日青年论坛<br><strong>https://scyf-pmo.github.io/</strong></p><p>内容来源<br><code>${esc(config.repository)}</code></p><p>登录不代表拥有发布权限。请由论坛负责人把维护者加入拥有 Write 权限的团队。</p><div class="notice success">本地草稿 → 预览确认 → 提交 GitHub → 自动部署</div><h2>本机草稿</h2><p>草稿保存在当前电脑，不会随登录自动同步给其他维护者。清空前可导出备份。</p><div class="heading-actions"><button class="button secondary" data-action="export">导出草稿备份</button><button class="text-button" data-action="discard">清空草稿</button></div><p class="subtle">初版的过期登录需要重新授权。程序不保存 App Secret、SSH 私钥或共享令牌。</p></section></div>`;
 }
 function assets() {
@@ -260,26 +272,27 @@ async function handleAction(action, el) {
     finally { el.disabled = false; }
     return;
   }
-  if (action === 'logout') { clearInterval(deviceTimer); await api.logout(); user = null; render(); toast('已退出登录并移除本机凭据。'); return; }
+  if (action === 'logout') { stopDevicePolling(); await api.logout(); user = null; render(); toast('已退出登录并移除本机凭据。'); return; }
   if (action === 'open-token') return api.open({ url: 'https://github.com/settings/personal-access-tokens/new' });
   if (action === 'device-login') {
+    if (deviceActive) return;
     const clientId = $('[name="clientId"]').value; const remember = $('#remember-device').checked; el.disabled = true;
+    const epoch = ++deviceEpoch; deviceActive = true;
     try {
       const code = await api.startDevice({ clientId, remember }); config.clientId = clientId;
-      $('#modal-content').innerHTML = `<div class="modal-head"><h2>在 GitHub 确认登录</h2><button class="close" data-action="cancel-device" aria-label="取消登录">×</button></div><div class="modal-body"><p>在浏览器中输入以下代码，并确认授权给论坛管理器。</p><div class="code-box">${esc(code.userCode)}</div><p class="subtle">请只在 github.com 输入代码。有效期约 ${Math.round(code.expiresIn / 60)} 分钟。</p><button class="button" data-action="open-device">打开 GitHub 授权页 ↗</button><p id="device-status" class="subtle">等待浏览器中的授权…</p></div>`;
-      $('#modal').showModal(); await api.open({ url: code.verificationUrl });
-      clearInterval(deviceTimer); let polling = false;
-      deviceTimer = setInterval(async () => {
-        if (polling) return; polling = true;
-        try { const result = await api.pollDevice(); if (result.user) { user = result.user; clearInterval(deviceTimer); $('#modal').close(); render(); toast('GitHub 授权成功。'); } }
-        catch (error) { clearInterval(deviceTimer); if ($('#device-status')) $('#device-status').textContent = error.message; }
-        finally { polling = false; }
-      }, 5500);
-    } finally { el.disabled = false; }
+      if (epoch !== deviceEpoch || code.canceled) return;
+      $('#modal-content').innerHTML = `<div class="modal-head"><h2>在 GitHub 确认登录</h2><button class="close" data-action="cancel-device" aria-label="取消登录">×</button></div><div class="modal-body"><p>在浏览器中输入本次代码，并确认授权给论坛管理器。</p><div class="code-box">${esc(code.userCode)}</div><p class="subtle">请只在 github.com 输入。约 ${Math.round(code.expiresIn / 60)} 分钟内有效；旧代码不能重复使用。</p><button class="button" data-action="open-device">打开 GitHub 授权页 ↗</button><p id="device-status" role="status" aria-live="polite" class="notice login-status">等待浏览器中的授权；看到 All set 后请返回此窗口，无需再次点击登录。</p><button id="device-retry" class="button secondary" data-action="retry-device" hidden>重新获取登录码</button></div>`;
+      $('#modal').showModal();
+      scheduleDevicePoll(epoch, code.pollAfterMs || 5500);
+      try { await api.open({ url: code.verificationUrl }); }
+      catch { toast('未能自动打开浏览器。请手动打开 github.com/login/device，输入此处代码。', true); }
+    } catch (error) { stopDevicePolling(); throw error; }
+    finally { el.disabled = false; }
     return;
   }
   if (action === 'open-device') return api.open({ url: 'https://github.com/login/device' });
-  if (action === 'cancel-device') { clearInterval(deviceTimer); await api.cancelDevice(); $('#modal').close(); return; }
+  if (action === 'cancel-device') { stopDevicePolling(); await api.cancelDevice(); $('#modal').close(); return; }
+  if (action === 'retry-device') { stopDevicePolling(); await api.cancelDevice(); $('#modal').close(); return handleAction('device-login', $('[data-action="device-login"]')); }
   if (action === 'publish') {
     if (!$('#confirm-public').checked) return;
     working = true; el.disabled = true; el.textContent = '正在检查并发布…'; navigation();
@@ -293,6 +306,29 @@ async function handleAction(action, el) {
   }
   if (action === 'check-deploy') return checkDeployment();
   if (action === 'open-commit') return api.open({ url: state.lastPublish.url });
+}
+function stopDevicePolling() { clearTimeout(deviceTimer); deviceTimer = null; deviceActive = false; deviceEpoch++; }
+function scheduleDevicePoll(epoch, delay) {
+  clearTimeout(deviceTimer);
+  deviceTimer = setTimeout(async () => {
+    if (epoch !== deviceEpoch || !deviceActive) return;
+    try {
+      const result = await api.pollDevice();
+      if (epoch !== deviceEpoch || !deviceActive) return;
+      if (result.user) {
+        user = result.user; stopDevicePolling(); $('#modal').close(); render();
+        toast(user.canPublish ? `已登录 GitHub：${user.login}。` : 'GitHub 登录成功；当前为只读权限，请检查 App 安装和仓库权限。');
+        return;
+      }
+      $('#device-status').textContent = result.message || '正在等待 GitHub 确认，授权成功后会自动显示账号。';
+      scheduleDevicePoll(epoch, Math.max(1000, result.retryAfterMs || 5500));
+    } catch (error) {
+      if (epoch !== deviceEpoch || !deviceActive) return;
+      $('#device-status').textContent = error.message;
+      if (['NETWORK', 'RATE'].includes(error.code)) scheduleDevicePoll(epoch, 15000);
+      else { deviceActive = false; $('#device-retry').hidden = false; $('#device-status').classList.add('error'); }
+    }
+  }, delay);
 }
 document.addEventListener('click', async event => {
   const nav = event.target.closest('[data-nav]'); if (nav) { event.preventDefault(); navigate(nav.dataset.nav); return; }
@@ -311,7 +347,7 @@ document.addEventListener('input', event => {
   }
 });
 document.addEventListener('change', event => { if (event.target.id === 'filter') { filter = event.target.value; $('#main').innerHTML = listPage(current); } });
-$('#modal').addEventListener('cancel', event => { if (working) event.preventDefault(); else if (deviceTimer) { clearInterval(deviceTimer); api.cancelDevice().catch(() => {}); } });
+$('#modal').addEventListener('cancel', event => { if (working) event.preventDefault(); else if (deviceActive || deviceTimer) { stopDevicePolling(); api.cancelDevice().catch(() => {}); } });
 window.addEventListener('beforeunload', event => { if (dirty || working) { event.preventDefault(); event.returnValue = ''; } });
 (async () => {
   api = window.forumManager || await demoBridge();

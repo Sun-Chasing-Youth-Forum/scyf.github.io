@@ -1,0 +1,7 @@
+.nav-icon { display: inline-flex; align-items: center; justify-content: center; }
+.nav-icon svg { width: 21px; height: 21px; flex-shrink: 0; }
+nav button.active .nav-icon { --ink: #e6eddb; }
+.login-status { margin-top: 24px; min-height: 70px; }
+.brand img { flex-shrink: 0; }
+[hidden] { display: none !important; }
+input[readonly] { background: #f3f6ef; color: #6b8074; }

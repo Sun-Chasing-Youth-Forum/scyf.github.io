@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
-const allowed = { '/': 'index.html', '/index.html': 'index.html', '/app.js': 'app.js', '/style.css': 'style.css', '/logo.svg': 'logo.svg', '/sample.json': 'sample.json' };
+const allowed = { '/': 'index.html', '/index.html': 'index.html', '/app.js': 'app.js', '/style.css': 'style.css', '/icons.css': 'icons.css', '/logo.svg': 'logo.svg', '/app-icon.svg': 'app-icon.svg', '/sample.json': 'sample.json' };
 const types = { html: 'text/html; charset=utf-8', js: 'application/javascript; charset=utf-8', css: 'text/css; charset=utf-8', svg: 'image/svg+xml', json: 'application/json; charset=utf-8' };
 http.createServer(async (req, res) => {
   const file = allowed[new URL(req.url, 'http://127.0.0.1').pathname];

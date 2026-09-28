@@ -1,4 +1,4 @@
-# 逐日青年论坛网站管理器 · 初版 0.1
+# 逐日青年论坛网站管理器 · 0.1.1
 
 供历任网站维护者使用的中文桌面工具，支持 Windows x64、macOS Apple Silicon（arm64）及 Intel（x64）。管理的网站为 <https://scyf-pmo.github.io/>，仓库为 `scyf-pmo/scyf-pmo.github.io`。
 
@@ -6,7 +6,7 @@
 
 1. 获取对应系统的压缩包，完整解压。Windows 打开 `SCYF Website Manager.exe`；Mac 打开 `SCYF Website Manager.app`。不需要安装 Git、Node.js 或克隆网站。
 2. 首次可以直接查看内置的公开内容快照。右上角显示“离线体验”时，编辑只会保存在本机；不会改动正式网站。
-3. 进入“设置与账号”。如果负责人已提供 Client ID，使用“通过浏览器登录”；初版也支持个人细粒度令牌登录，配置方法见后面的管理员说明。
+3. 进入“设置与账号”，点击“通过浏览器登录”。论坛 Client ID 已内置，无需填写。在浏览器输入**本次**登录码并授权，看到 All set 后返回管理器，等待账号自动显示；不要重复发起授权。个人细粒度令牌仍可作为备用方式。
 4. 点击“读取最新内容”，确认显示“已读取 GitHub”。找到活动、公告、培训或论坛介绍，点击“编辑”。
 5. 填写表单，点击“保存草稿”。同一期的多个报告可分别填写时间、报告人、单位、题目和完整摘要。尚未确定的信息可留空，单个分场报告的必填内容可写“待定”。
 6. 点击底部“预览与发布”，逐项比较修改前后，勾选确认公开内容，再点击“确认发布”。发布前会再次检查权限、必填字段、活动期数和远端版本。
@@ -55,9 +55,18 @@
 2. 启用 **Device Flow**。桌面程序使用设备授权流程，不需要自建回调服务器；不启用 Webhook。
 3. Repository permissions 设为 **Contents: Read and write**、**Actions: Read-only**，Metadata 为只读。
 4. 安装 App 时只选择网站仓库。App 权限与当前用户的仓库权限取交集，安装 App 不会让无权限的用户获得写权限。
-5. 将 App 的公开 **Client ID** 提供给维护者，在“设置与账号”填写。也可以写入 `manager/app-config.json` 的 `clientId` 后重新打包，后续维护者直接点击登录。
+5. App 的公开 **Client ID** 已写入 `manager/app-config.json` 的 `clientId`，维护者直接点击登录。以后更换 App 时修改此文件并重新打包；旧版保存的本机 Client ID 不会覆盖随新版内置的配置。
 
-App 私钥和 Client Secret 不得分发。初版已实现 Device Flow 的等待、取消、过期和 `slow_down` 处理，但没有内置 App 注册，也未使用真实新 App 做授权验收；只有创建并安装 App 后才能启用这一入口。当前版本在用户访问令牌过期时要求重新授权，不保存刷新令牌，也不会为刷新流程内置 Secret。
+App 私钥和 Client Secret 不得分发。管理器使用 Device Flow，按 GitHub 的间隔查询授权结果，支持取消、过期、限流和网络恢复。获取访问令牌后，身份验证暂时失败时会复用内存中的令牌重试，不会再次消耗一次性登录码。当前版本在用户访问令牌过期时要求重新授权，不保存刷新令牌，也不会为刷新流程内置 Secret。
+
+### 浏览器显示 All set，但软件没有显示账号
+
+1. 确认运行的是 **0.1.1** 或更新版本，旧窗口全部退出。解压新版到新的文件夹运行，不必删除本机草稿。新版限制同一用户只运行一个实例。
+2. 只使用软件**当前显示**的登录码。旧网页的 All set 不代表新发起的登录也已完成。
+3. 返回管理器等待。网络暂时中断或 GitHub 限流时会显示等待原因并自动重试，请不要连续点击登录。
+4. 如果显示 `unverified_user_email`，先验证 GitHub 账号主要邮箱。若显示登录码过期/失效，关闭旧授权页，点击“重新获取登录码”。
+5. 如果已显示 GitHub 用户名但为只读状态，登录本身已经完成。负责人需检查 App 安装是否包含网站仓库，以及该维护者的仓库 Write 权限。
+6. 若仍失败，请把软件显示的错误文字提供给负责人。**不要发送访问令牌、设备授权码、auth.bin 或浏览器 Cookie。**
 
 参考：[GitHub App 设备授权](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)、[Electron safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage)。
 
@@ -87,6 +96,8 @@ npm start
 Windows：`npm run pack:win`。Mac：在 Mac 上运行 `npm run pack:mac`。初版的 `preview/website-manager` 分支更新管理器代码时会运行 **Build website manager**；工作流合并到默认分支后也可手动运行。该工作流会生成 Windows x64、Mac arm64 和 Mac x64 三个 ZIP，保留 30 天，不会自动创建公开 Release。
 
 `npm run snapshot` 可重新生成随程序附带的公开内容示例。它只读取网站公开内容目录，不读取私有手册或 `.codex-local`。
+
+应用图标源文件为 `ui/app-icon.svg`，以论坛配色设计太阳、运行轨迹和编辑笔。`assets/icon.ico`、`icon.icns`、`icon.png` 分别用于 Windows、Mac 和窗口图标。已生成的资源随仓库提交；普通打包无需额外依赖。重新生成时先安装网站根目录依赖（提供 Sharp），再运行 `npm run icons`。侧栏使用同一套 SVG 线性图标。
 
 ```text
 manager/

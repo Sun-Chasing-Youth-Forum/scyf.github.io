@@ -85,3 +85,92 @@ test('canceling an in-flight device poll cannot return a token', async () => {
   finish(new Response(JSON.stringify({ access_token: 'must-not-be-returned' })));
   assert.deepEqual(await pending, { waiting: true });
 });
+
+const deviceResponse = () => new Response(JSON.stringify({ device_code: 'private-device-code', user_code: 'ABCD-EFGH', expires_in: 900, interval: 5 }));
+test('a network failure retains the device flow and retries after backoff', async () => {
+  let now = 0, attempt = 0;
+  const flow = new DeviceFlow(config, async url => {
+    if (url.endsWith('/device/code')) return deviceResponse();
+    if (!attempt++) throw new Error('temporary outage');
+    return new Response(JSON.stringify({ access_token: 'example-user-token' }));
+  }, () => now);
+  await flow.start('Iv1.client-id'); now = 5000;
+  const retry = await flow.poll(); assert.equal(retry.waiting, true); assert.ok(flow.pending);
+  now += retry.retryAfterMs;
+  assert.equal((await flow.poll()).token, 'example-user-token');
+});
+test('OAuth success remains available for profile retries without consuming the device code twice', async () => {
+  let now = 0, exchanges = 0;
+  const flow = new DeviceFlow(config, async url => {
+    if (url.endsWith('/device/code')) return deviceResponse();
+    exchanges++; return new Response(JSON.stringify({ access_token: 'example-user-token', expires_in: 28800 }));
+  }, () => now);
+  await flow.start('Iv1.client-id'); now = 5000;
+  const first = await flow.poll(); now += 10000;
+  assert.deepEqual(await flow.poll(), first); assert.equal(exchanges, 1);
+  flow.cancel(); await assert.rejects(() => flow.poll(), /取消/);
+});
+test('concurrent polls never exchange the same device code simultaneously', async () => {
+  let now = 0, finish, exchanges = 0;
+  const flow = new DeviceFlow(config, async url => {
+    if (url.endsWith('/device/code')) return deviceResponse();
+    exchanges++; return new Promise(resolve => { finish = resolve; });
+  }, () => now);
+  await flow.start('Iv1.client-id'); now = 5000;
+  const first = flow.poll(); now += 10000;
+  assert.equal((await flow.poll()).waiting, true); assert.equal(exchanges, 1);
+  finish(new Response(JSON.stringify({ access_token: 'example-user-token' })));
+  assert.equal((await first).token, 'example-user-token');
+});
+test('poll spacing starts after a slow response, not at the request start', async () => {
+  let now = 0, exchanges = 0;
+  const flow = new DeviceFlow(config, async url => {
+    if (url.endsWith('/device/code')) return deviceResponse();
+    exchanges++; now += 20000; return new Response(JSON.stringify({ error: 'authorization_pending' }));
+  }, () => now);
+  await flow.start('Iv1.client-id'); now = 5000;
+  await flow.poll(); assert.equal(now, 25000);
+  await flow.poll(); assert.equal(exchanges, 1);
+  now = 30000; await flow.poll(); assert.equal(exchanges, 2);
+});
+test('rate limiting honors Retry-After without canceling the authorization', async () => {
+  let now = 0;
+  const flow = new DeviceFlow(config, async url => url.endsWith('/device/code') ? deviceResponse() : new Response('{}', { status: 429, headers: { 'Retry-After': '90' } }), () => now);
+  await flow.start('Iv1.client-id'); now = 5000;
+  const result = await flow.poll(); assert.equal(result.retryAfterMs, 90000); assert.ok(flow.pending);
+});
+test('GitHub-provided slow_down interval takes precedence', async () => {
+  let now = 0;
+  const flow = new DeviceFlow(config, async url => url.endsWith('/device/code') ? deviceResponse() : new Response(JSON.stringify({ error: 'slow_down', interval: 25 })), () => now);
+  await flow.start('Iv1.client-id'); now = 5000;
+  assert.equal((await flow.poll()).retryAfterMs, 25000);
+});
+for (const error of ['unverified_user_email', 'incorrect_client_credentials', 'incorrect_device_code', 'bad_verification_code', 'access_denied', 'device_flow_disabled']) {
+  test(`authorization error ${error} is actionable and does not expose raw responses`, async () => {
+    let now = 0;
+    const flow = new DeviceFlow(config, async url => url.endsWith('/device/code') ? deviceResponse() : new Response(JSON.stringify({ error, error_description: 'sensitive-server-detail' })), () => now);
+    await flow.start('Iv1.client-id'); now = 5000;
+    await assert.rejects(() => flow.poll(), e => e.code === 'DEVICE_AUTH' && e.message.includes(error) && !e.message.includes('sensitive-server-detail'));
+    assert.equal(flow.pending, null);
+  });
+}
+test('canceling a pending code request cannot reopen an abandoned login', async () => {
+  let finish;
+  const flow = new DeviceFlow(config, async () => new Promise(resolve => { finish = resolve; }));
+  const start = flow.start('Iv1.client-id'); flow.cancel(); finish(deviceResponse());
+  await assert.rejects(() => start, /取消/); assert.equal(flow.pending, null);
+});
+test('a second start cannot race and invalidate a code already being requested', async () => {
+  let finish;
+  const flow = new DeviceFlow(config, async () => new Promise(resolve => { finish = resolve; }));
+  const start = flow.start('Iv1.client-id');
+  await assert.rejects(() => flow.start('Iv1.client-id'), /重复/);
+  finish(deviceResponse()); assert.equal((await start).userCode, 'ABCD-EFGH');
+});
+test('a signed-in user without repository access remains signed in with a clear warning', async () => {
+  const hub = new GitHub(config, { fetcher: async url => url.endsWith('/user') ? new Response(JSON.stringify({ login: 'maintainer', name: '维护者' })) : new Response('{}', { status: 404 }) });
+  hub.token = 'example-user-token';
+  const identity = await hub.identity();
+  assert.equal(identity.login, 'maintainer'); assert.equal(identity.canPublish, false);
+  assert.match(identity.permissionMessage, /App 已安装/);
+});
