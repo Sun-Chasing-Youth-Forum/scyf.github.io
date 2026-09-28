@@ -41,11 +41,12 @@ assert.ok(!home.includes('论坛手册'), '首页不应保留论坛手册公开�
 const currentNext = selectNext(events, new Date());
 assert.ok(currentNext ? home.includes(`第</span><strong>${String(currentNext.issue).padStart(2, '0')}`) : home.includes('新一期活动正在筹备'), '首页下一期活动与当前日期不一致');
 
-const base = process.env.GITHUB_REPOSITORY?.split('/')[1];
-if (base && !base.toLowerCase().endsWith('.github.io')) {
+const [owner = '', base = ''] = (process.env.GITHUB_REPOSITORY || '').split('/');
+const isOrganizationSite = base.toLowerCase() === `${owner.toLowerCase()}.github.io`;
+if (base && !isOrganizationSite) {
   assert.ok(home.includes(`/${base}/_astro/`), '项目 Pages 构建的静态资源未包含仓库子路径');
   assert.ok(home.includes(`href="/${base}/events/"`), '项目 Pages 的内部链接未包含仓库子路径');
-} else if (base) {
+} else if (isOrganizationSite) {
   assert.ok(home.includes('href="/_astro/'), 'Organization Pages 的静态资源应使用根路径');
   assert.ok(home.includes('href="/events/"'), 'Organization Pages 的内部链接应使用根路径');
   assert.ok(!home.includes(`href="/${base}/`) && !home.includes(`src="/${base}/`), 'Organization Pages 不应包含仓库名称子路径');

@@ -6,7 +6,7 @@ const [owner = '', repositoryName = ''] = repository.split('/');
 const normalizedOwner = owner.toLowerCase();
 const isOrganizationSite = repositoryName.toLowerCase() === `${normalizedOwner}.github.io`;
 const site = process.env.SITE_URL || (normalizedOwner ? `https://${normalizedOwner}.github.io` : 'http://localhost:4321');
-const base = process.env.BASE_PATH || (!repositoryName || isOrganizationSite ? '/' : `/${repositoryName}`);
+const base = process.env.BASE_PATH || (!repositoryName || isOrganizationSite ? '/' : `/${repositoryName}/`);
 
 export default defineConfig({
   site,
