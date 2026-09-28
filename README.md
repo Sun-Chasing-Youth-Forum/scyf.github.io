@@ -14,6 +14,8 @@
 
 ## 本地运行
 
+不熟悉 GitHub 的维护者可使用 [桌面网站管理器](manager/README.md)，通过中文表单维护活动、通知、培训与论坛介绍。支持 Windows 和 Mac；安装包由 **Build website manager** 工作流生成。管理器源代码位于 `manager/`，独立于公开网站。
+
 需要 Node.js 22 或更高版本。
 
 ```bash

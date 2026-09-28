@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <title>逐日青年论坛网站管理器 · 太阳与网页编辑</title>
+  <rect x="64" y="64" width="896" height="896" rx="204" fill="#163C3B"/>
+  <rect x="208" y="244" width="608" height="504" rx="48" fill="#F6F5ED"/>
+  <path d="M208 352H816" stroke="#163C3B" stroke-width="24"/>
+  <g fill="#163C3B">
+    <circle cx="268" cy="298" r="13"/>
+    <circle cx="316" cy="298" r="13"/>
+    <circle cx="364" cy="298" r="13"/>
+  </g>
+  <circle cx="418" cy="532" r="62" fill="#E9B94F"/>
+  <path d="M418 420V442M418 622V644M306 532H328M508 532H530M339 453L354 468M482 596L497 611M339 611L354 596M482 468L497 453" stroke="#E9B94F" stroke-width="20" stroke-linecap="round"/>
+  <path d="M735 468Q749 454 763 468L817 522Q831 536 817 550L626 741L535 758L552 667Z" fill="#E9B94F" stroke="#163C3B" stroke-width="26" stroke-linejoin="round"/>
+  <path d="M710 493L792 575M552 667L626 741" stroke="#163C3B" stroke-width="22"/>
+</svg>
