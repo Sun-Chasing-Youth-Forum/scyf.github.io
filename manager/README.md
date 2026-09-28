@@ -97,7 +97,7 @@ Windows：`npm run pack:win`。Mac：在 Mac 上运行 `npm run pack:mac`。初�
 
 `npm run snapshot` 可重新生成随程序附带的公开内容示例。它只读取网站公开内容目录，不读取私有手册或 `.codex-local`。
 
-应用图标源文件为 `ui/app-icon.svg`，以论坛配色设计太阳、运行轨迹和编辑笔。`assets/icon.ico`、`icon.icns`、`icon.png` 分别用于 Windows、Mac 和窗口图标。已生成的资源随仓库提交；普通打包无需额外依赖。重新生成时先安装网站根目录依赖（提供 Sharp），再运行 `npm run icons`。侧栏使用同一套 SVG 线性图标。
+应用图标源文件为 `ui/app-icon.svg`，以论坛配色简化组合网页窗口、太阳和编辑笔，不使用轨道或装饰线。`assets/icon.ico`、`icon.icns`、`icon.png` 分别用于 Windows、Mac 和窗口图标。已生成的资源随仓库提交；普通打包无需额外依赖。重新生成时先安装网站根目录依赖（提供 Sharp），再运行 `npm run icons`。侧栏使用同一套 SVG 线性图标。
 
 ```text
 manager/
