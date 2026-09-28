@@ -3,12 +3,11 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageHeader from '../../components/PageHeader.astro';
 import EventCard from '../../components/EventCard.astro';
-import { sortEventsAsc } from '../../utils/events';
+import { sortEventsAsc, isPastEvent } from '../../utils/events';
 
 const now = new Date();
-const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 const events = sortEventsAsc(await getCollection('events'));
-const upcoming = events.filter((event) => event.data.status !== '已结束' && event.data.date.getTime() >= today);
+const upcoming = events.filter((event) => !isPastEvent(event.data, now));
 ---
 <BaseLayout title="活动日程" description="逐日青年论坛未来活动安排。">
   <PageHeader eyebrow="PROGRAM" title="活动日程" intro="论坛原则上每两周举办一次。活动时间、主持人和报告信息以各期详情页为准。" />

@@ -1,6 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
-import { formatDate } from '../utils/events';
+import { formatDate, effectiveStatus } from '../utils/events';
 import { sitePath } from '../utils/paths';
 import StatusBadge from './StatusBadge.astro';
 
@@ -19,7 +19,7 @@ const titles = event.data.sessions.length
 <article class:list={['event-card', { compact }] }>
   <div class="event-card-top">
     <p>第 {event.data.issue} 期</p>
-    <StatusBadge status={event.data.status} />
+    <StatusBadge status={effectiveStatus(event.data)} />
   </div>
   <p class="event-card-date">{formatDate(event.data.date)} · {event.data.time}</p>
   <h3><a href={sitePath(`/events/${event.id}/`)}>{titles}</a></h3>

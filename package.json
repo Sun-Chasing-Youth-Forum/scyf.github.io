@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "node scripts/update-event-status.mjs",
+    "test:events": "node --test scripts/event-state.test.mjs",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",

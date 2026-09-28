@@ -3,7 +3,7 @@ import { getCollection, render, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StatusBadge from '../../components/StatusBadge.astro';
 import Giscus from '../../components/Giscus.astro';
-import { formatDate } from '../../utils/events';
+import { formatDate, effectiveStatus, isPastEvent } from '../../utils/events';
 import { sitePath } from '../../utils/paths';
 
 export async function getStaticPaths() {
@@ -29,7 +29,7 @@ const sessions = event.data.sessions.length ? event.data.sessions : [{
     <header class="event-detail-header">
       <div class="container narrow">
         <a class="breadcrumb" href={sitePath('/events/')}>活动日程</a>
-        <div class="detail-kicker"><span>第 {event.data.issue} 期</span><StatusBadge status={event.data.status} /></div>
+        <div class="detail-kicker"><span>第 {event.data.issue} 期</span><StatusBadge status={effectiveStatus(event.data)} /></div>
         <h1>{display(event.data.title)}</h1>
         <p>{formatDate(event.data.date)} · {event.data.time}</p>
       </div>
@@ -44,9 +44,9 @@ const sessions = event.data.sessions.length ? event.data.sessions : [{
             <div><dt>报告人单位</dt><dd>{[...new Set(sessions.map((session) => session.affiliation).filter(Boolean))].join('、') || '待定'}</dd></div>
             {event.data.reportType && <div><dt>报告类型</dt><dd>{event.data.reportType}</dd></div>}
             <div><dt>地点</dt><dd>{event.data.location}</dd></div>
-            {event.data.meetingNumber && event.data.status !== '已结束' && <div><dt>腾讯会议号</dt><dd>{event.data.meetingNumber}</dd></div>}
+            {event.data.meetingNumber && !isPastEvent(event.data) && <div><dt>腾讯会议号</dt><dd>{event.data.meetingNumber}</dd></div>}
           </dl>
-          {event.data.meetingUrl && event.data.status !== '已结束' && <a class="button" href={event.data.meetingUrl}>进入线上会议</a>}
+          {event.data.meetingUrl && !isPastEvent(event.data) && <a class="button" href={event.data.meetingUrl}>进入线上会议</a>}
         </section>
         <section>
           <h2>{sessions.length > 1 ? '本期报告' : '报告信息'}</h2>

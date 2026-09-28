@@ -3,11 +3,12 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 import EventCard from '../components/EventCard.astro';
+import { isPastEvent } from '../utils/events';
 
 const events = (await getCollection('events'))
-  .filter((event) => event.data.status === '已结束')
+  .filter((event) => isPastEvent(event.data))
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
-const grouped = Object.groupBy(events, (event) => String(event.data.date.getFullYear()));
+const grouped = Object.groupBy(events, (event) => String(event.data.date.getUTCFullYear()));
 const years = Object.keys(grouped).sort((a, b) => Number(b) - Number(a));
 ---
 <BaseLayout title="往期活动" description="逐日青年论坛往期活动按年份归档。">

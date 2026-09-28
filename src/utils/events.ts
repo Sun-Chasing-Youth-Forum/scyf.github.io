@@ -1,4 +1,6 @@
 import type { CollectionEntry } from 'astro:content';
+import { isPastEvent, effectiveStatus } from './event-state.mjs';
+export { isPastEvent, effectiveStatus };
 
 export type EventEntry = CollectionEntry<'events'>;
 
@@ -7,9 +9,8 @@ export function sortEventsAsc(events: EventEntry[]) {
 }
 
 export function findNextEvent(events: EventEntry[], now = new Date()) {
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   return sortEventsAsc(events).find((event) =>
-    event.data.status !== '已结束' && event.data.date.getTime() >= today
+    !isPastEvent(event.data, now)
   );
 }
 

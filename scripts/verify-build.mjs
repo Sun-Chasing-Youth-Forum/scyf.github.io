@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { isPastEvent } from '../src/utils/event-state.mjs';
 
 const root = new URL('../', import.meta.url).pathname.replace(/^\/(.:\/)/, '$1');
 const dist = join(root, 'dist');
@@ -20,12 +21,11 @@ for (const route of expectedRoutes) assert.ok(existsSync(join(dist, route)), `�
 const parseEvent = (filename) => {
   const source = readFileSync(join(eventSource, filename), 'utf8');
   const field = (name) => source.match(new RegExp(`^${name}:\\s*(?:"([^"]*)"|([^\\n]+))`, 'm'))?.slice(1).find(Boolean)?.trim();
-  return { issue: Number(field('issue')), date: new Date(`${field('date')}T00:00:00+08:00`), status: field('status'), title: field('title') || '' };
+  return { id: filename.replace(/\.mdx?$/, ''), issue: Number(field('issue')), date: field('date'), time: field('time'), status: field('status'), title: field('title') || '' };
 };
 const events = readdirSync(eventSource).filter((name) => /\.mdx?$/.test(name)).map(parseEvent);
 const selectNext = (items, now) => {
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  return [...items].sort((a, b) => a.date - b.date).find((event) => event.status !== '已结束' && event.date.getTime() >= today);
+  return [...items].sort((a, b) => new Date(a.date) - new Date(b.date)).find((event) => !isPastEvent(event, now));
 };
 
 assert.equal(selectNext([
@@ -37,6 +37,14 @@ assert.equal(selectNext([
 ], new Date('2026-09-10'))?.issue, 2, '下一期活动应按日期而非文件顺序选择');
 
 const home = readFileSync(join(dist, 'index.html'), 'utf8');
+const future = readFileSync(join(dist, 'events/index.html'), 'utf8');
+const archive = readFileSync(join(dist, 'archive/index.html'), 'utf8');
+for (const event of events) {
+  const link = `/events/${event.id}/"`;
+  const inFuture = future.includes(link), inArchive = archive.includes(link);
+  assert.equal(Number(inFuture) + Number(inArchive), 1, `第 ${event.issue} 期必须恰好出现在未来或往期列表之一`);
+  assert.equal(inArchive, isPastEvent(event), `第 ${event.issue} 期分类不符合北京时间`);
+}
 assert.ok(!home.includes('论坛手册'), '首页不应保留论坛手册公开入口');
 const currentNext = selectNext(events, new Date());
 assert.ok(currentNext ? home.includes(`第</span><strong>${String(currentNext.issue).padStart(2, '0')}`) : home.includes('新一期活动正在筹备'), '首页下一期活动与当前日期不一致');

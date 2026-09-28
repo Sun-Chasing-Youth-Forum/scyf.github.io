@@ -1,7 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { findNextEvent, formatDate } from '../utils/events';
+import { findNextEvent, formatDate, isPastEvent } from '../utils/events';
 import { sitePath } from '../utils/paths';
 import EventCard from '../components/EventCard.astro';
 
@@ -14,7 +14,7 @@ const nextAffiliations = nextEvent?.data.sessions.length
   ? [...new Set(nextEvent.data.sessions.map((session) => session.affiliation).filter(Boolean))].join('、') || '待定'
   : (nextEvent?.data.affiliation || '待定');
 const recentEvents = [...events]
-  .filter((event) => event.data.status === '已结束')
+  .filter((event) => isPastEvent(event.data))
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, 3);
 const news = (await getCollection('news'))

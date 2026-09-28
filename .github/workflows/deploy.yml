@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
 
 permissions:
   contents: read
@@ -17,6 +19,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     env:
       PUBLIC_GITHUB_REPOSITORY: ${{ github.repository }}
       PUBLIC_GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
@@ -39,10 +45,21 @@ jobs:
         run: npm ci
       - name: Check content and types
         run: npm run check
+      - name: Test event time boundaries
+        run: npm run test:events
       - name: Build site
         run: npm run build
       - name: Verify generated routes and links
         run: npm run test:content
+      - name: Save automatic event status updates
+        run: |
+          git add src/content/events/
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: archive completed announced events"
+            git push origin HEAD:main
+          fi
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
