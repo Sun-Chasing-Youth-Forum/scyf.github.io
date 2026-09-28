@@ -75,3 +75,13 @@ test('expired device code stops polling', async () => {
   let now = 0; const flow = new DeviceFlow(config, async () => new Response(JSON.stringify({ device_code: 'd', user_code: 'u', expires_in: 1, interval: 5 })), () => now);
   await flow.start('Iv1.client-id'); now = 2000; await assert.rejects(() => flow.poll(), /过期/);
 });
+test('canceling an in-flight device poll cannot return a token', async () => {
+  let now = 0, finish;
+  const flow = new DeviceFlow(config, async url => url.endsWith('/device/code')
+    ? new Response(JSON.stringify({ device_code: 'd', user_code: 'u', expires_in: 900, interval: 5 }))
+    : new Promise(resolve => { finish = resolve; }), () => now);
+  await flow.start('Iv1.client-id'); now = 5000;
+  const pending = flow.poll(); flow.pending = null;
+  finish(new Response(JSON.stringify({ access_token: 'must-not-be-returned' })));
+  assert.deepEqual(await pending, { waiting: true });
+});

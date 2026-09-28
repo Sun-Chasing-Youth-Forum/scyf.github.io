@@ -112,6 +112,7 @@ export class DeviceFlow {
     if (this.now() < p.next) return { waiting: true };
     p.next = this.now() + p.interval;
     const result = await this.post('/login/oauth/access_token', { client_id: p.clientId, device_code: p.code, grant_type: 'urn:ietf:params:oauth:grant-type:device_code', repository_id: this.config.repositoryId });
+    if (this.pending !== p) return { waiting: true }; // A canceled or replaced login must never restore credentials.
     if (result.error === 'authorization_pending') return { waiting: true };
     if (result.error === 'slow_down') { p.interval += 5000; p.next = this.now() + p.interval; return { waiting: true }; }
     this.pending = null;

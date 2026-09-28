@@ -123,7 +123,7 @@ app.whenReady().then(async () => {
   });
   window.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   ipcMain.handle('manager', async (event, request) => {
-    if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame || event.senderFrame.url !== pathToFileURL(uiFile).href) return { ok: false, error: '无效的请求来源。' };
+    if (event.sender !== window.webContents || event.senderFrame?.routingId !== window.webContents.mainFrame.routingId || event.senderFrame?.processId !== window.webContents.mainFrame.processId || event.senderFrame?.url !== pathToFileURL(uiFile).href) return { ok: false, error: '无效的请求来源。' };
     try { return { ok: true, value: await handle(request.method, request.data) }; }
     catch (error) {
       if (error.code === 'AUTH') { backend.token = ''; user = null; await fs.rm(dataFile('auth.bin'), { force: true }); }

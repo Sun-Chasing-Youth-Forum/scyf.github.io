@@ -59,7 +59,7 @@ function navigation() {
   const menu = [['overview', '◫'], ['events', '▦'], ['news', '☷'], ['training', '◇'], ['assets', '↥'], ['about', '◎'], ['history', '◷'], ['settings', '⚙']];
   $('#navigation').innerHTML = menu.map(([key, icon], index) => `${index === 6 ? '<div class="nav-divider"></div>' : ''}<button class="${current === key ? 'active' : ''}" data-nav="${key}" title="${labels[key]}" ${current === key ? 'aria-current="page"' : ''}><span class="nav-icon">${icon}</span><span class="nav-label">${labels[key]}</span></button>`).join('');
   $('#breadcrumb').textContent = `工作台 / ${labels[current]}${selected ? ' / 内容编辑' : ''}`;
-  $('#connection').textContent = state.snapshot.source === 'remote' ? '已读取 GitHub' : '离线体验';
+  $('#connection').textContent = working ? '正在处理…' : state.snapshot.source === 'remote' ? '已读取 GitHub' : '离线体验';
   $('#connection').className = `connection${state.snapshot.source === 'remote' ? ' connected' : ''}`;
   $('#account').textContent = user ? `${user.login}${user.canPublish ? '' : ' · 只读'}` : '登录 GitHub';
   $('#draft-count').textContent = state.changes.length;
@@ -248,7 +248,7 @@ async function handleAction(action, el) {
   }
   if (action === 'sync') {
     if (!confirmLeave()) return;
-    working = true; navigation(); el.disabled = true; const original = el.textContent; el.textContent = '正在读取…';
+    working = true; selected = null; dirty = false; render(); el.disabled = true; const original = el.textContent; el.textContent = '正在读取…';
     try { state = await api.sync(); selected = null; dirty = false; toast('已读取最新内容，未冲突的草稿已保留。'); }
     finally { working = false; el.disabled = false; el.textContent = original; render(); }
     return;
@@ -315,9 +315,10 @@ $('#modal').addEventListener('cancel', event => { if (working) event.preventDefa
 window.addEventListener('beforeunload', event => { if (dirty || working) { event.preventDefault(); event.returnValue = ''; } });
 (async () => {
   api = window.forumManager || await demoBridge();
-  const boot = await api.bootstrap(); ({ state, user, config, desktop, secureStorage } = boot); render();
+  const boot = await api.bootstrap(); ({ state, user, config, desktop, secureStorage } = boot); working = desktop; render();
   if (desktop) {
-    try { state = await api.sync(); if (!dirty && !selected) render(); else navigation(); }
+    try { state = await api.sync(); }
     catch { toast('暂未读取远端最新内容，当前显示本机快照。可以继续查看或保存草稿。', true); }
+    finally { working = false; render(); }
   }
 })().catch(error => { $('#main').innerHTML = `<div class="notice error">启动失败：${esc(error.message)}</div>`; });
