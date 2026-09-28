@@ -1,4 +1,4 @@
-# 逐日青年论坛网站管理器 · 0.1.1
+# 逐日青年论坛网站管理器 · 0.1.2
 
 供历任网站维护者使用的中文桌面工具，支持 Windows x64、macOS Apple Silicon（arm64）及 Intel（x64）。管理的网站为 <https://scyf-pmo.github.io/>，仓库为 `scyf-pmo/scyf-pmo.github.io`。
 
@@ -61,12 +61,15 @@ App 私钥和 Client Secret 不得分发。管理器使用 Device Flow，按 Git
 
 ### 浏览器显示 All set，但软件没有显示账号
 
-1. 确认运行的是 **0.1.1** 或更新版本，旧窗口全部退出。解压新版到新的文件夹运行，不必删除本机草稿。新版限制同一用户只运行一个实例。
+1. 确认运行的是 **0.1.2** 或更新版本，旧窗口全部退出。解压新版到新的文件夹运行，不必删除本机草稿。新版限制同一用户只运行一个实例。
 2. 只使用软件**当前显示**的登录码。旧网页的 All set 不代表新发起的登录也已完成。
 3. 返回管理器等待。网络暂时中断或 GitHub 限流时会显示等待原因并自动重试，请不要连续点击登录。
-4. 如果显示 `unverified_user_email`，先验证 GitHub 账号主要邮箱。若显示登录码过期/失效，关闭旧授权页，点击“重新获取登录码”。
-5. 如果已显示 GitHub 用户名但为只读状态，登录本身已经完成。负责人需检查 App 安装是否包含网站仓库，以及该维护者的仓库 Write 权限。
-6. 若仍失败，请把软件显示的错误文字提供给负责人。**不要发送访问令牌、设备授权码、auth.bin 或浏览器 Cookie。**
+4. 如果显示 `installation_missing_access`，不是等待时间不够，也不是 Client ID 需要重填：**个人授权完成，但管理器 App 没有网站仓库的安装访问权限**。组织负责人打开 [scyf-pmo 的 GitHub Apps](https://github.com/organizations/scyf-pmo/settings/installations)，找到网站管理器（不是 giscus）→ Configure → Repository access → Only select repositories，选中 `scyf-pmo.github.io` 后保存。若没有管理器 App，请到创建该 App 的账号/组织的 Developer settings → GitHub Apps → 对应 App → Install App，安装到 `scyf-pmo` 并仅选择网站仓库；不要为此选择所有仓库。若 App 已被暂停或权限变更尚待批准，需负责人检查并处理。然后返回软件重新获取登录码、重新授权。**浏览器授权 App 与将 App 安装到仓库是两个不同步骤**；不需要共享令牌、提供 Client Secret 或删除草稿。
+5. 如果显示 `unverified_user_email`，先验证 GitHub 账号主要邮箱。若显示登录码过期/失效，关闭旧授权页，点击“重新获取登录码”。
+6. 如果已显示 GitHub 用户名但为只读状态，登录本身已经完成。负责人需检查 App 安装是否包含网站仓库，以及该维护者的仓库 Write 权限。
+7. 若仍失败，请把软件显示的错误文字提供给负责人。**不要发送访问令牌、设备授权码、auth.bin 或浏览器 Cookie。**
+
+0.1.2 针对实际收到的 `installation_missing_access` 响应增加专门提示和安装设置入口，不再误报“无法识别”。登录请求仍通过 `repository_id` 限制到网站仓库，不会在授权失败后取消限制、扩大令牌范围或无限重试。
 
 参考：[GitHub App 设备授权](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)、[Electron safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage)。
 

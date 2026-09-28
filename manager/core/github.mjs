@@ -100,6 +100,9 @@ export class DeviceFlow {
   constructor(config, fetcher = fetch, now = () => Date.now()) { this.config = config; this.fetcher = fetcher; this.now = now; this.pending = null; this.generation = 0; this.starting = false; }
   cancel() { this.generation++; this.pending = null; }
   error(name) {
+    if (name === 'installation_missing_access') {
+      return new GitHubError('个人账号授权已完成，但论坛管理器 App 无权访问网站仓库。请组织负责人将此 App 安装到 scyf-pmo，并仅授权 scyf-pmo.github.io 仓库；完成后重新获取登录码。（installation_missing_access）', 'DEVICE_INSTALLATION');
+    }
     const errors = {
       expired_token: '本次登录码已过期，请关闭此窗口后重新登录。',
       token_expired: '本次登录码已过期，请关闭此窗口后重新登录。',
@@ -111,7 +114,9 @@ export class DeviceFlow {
       unsupported_grant_type: 'GitHub 未接受设备授权请求，请升级管理器。',
       unverified_user_email: '请先在 GitHub 验证个人账号的主要邮箱，再重新登录。'
     };
-    return new GitHubError(errors[name] ? `${errors[name]}（${name}）` : 'GitHub 返回了无法识别的授权响应。请稍后重试，或联系论坛负责人。', 'DEVICE_AUTH');
+    // Never surface arbitrary upstream descriptions, which may contain sensitive details.
+    const safeCode = typeof name === 'string' && /^[a-z_]{1,64}$/.test(name) ? `（${name}）` : '';
+    return new GitHubError(errors[name] ? `${errors[name]}（${name}）` : `GitHub 未能完成授权，请将此提示提供给论坛负责人。${safeCode}`, 'DEVICE_AUTH');
   }
   async post(path, body) {
     let response;
@@ -163,7 +168,7 @@ export class DeviceFlow {
       p.result = { token: result.access_token, expiresAt: result.expires_in ? this.now() + result.expires_in * 1000 : null };
       return p.result;
     } catch (error) {
-      if (this.pending !== p) { if (error.code === 'DEVICE_AUTH') throw error; return { waiting: true }; }
+      if (this.pending !== p) { if (['DEVICE_AUTH', 'DEVICE_INSTALLATION'].includes(error.code)) throw error; return { waiting: true }; }
       if (!['NETWORK', 'RATE'].includes(error.code)) throw error;
       const delay = Math.max(p.interval, error.retryAfterMs || 10000);
       p.next = this.now() + delay;

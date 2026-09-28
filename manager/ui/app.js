@@ -291,6 +291,7 @@ async function handleAction(action, el) {
     return;
   }
   if (action === 'open-device') return api.open({ url: 'https://github.com/login/device' });
+  if (action === 'open-app-installations') return api.open({ url: 'https://github.com/organizations/scyf-pmo/settings/installations' });
   if (action === 'cancel-device') { stopDevicePolling(); await api.cancelDevice(); $('#modal').close(); return; }
   if (action === 'retry-device') { stopDevicePolling(); await api.cancelDevice(); $('#modal').close(); return handleAction('device-login', $('[data-action="device-login"]')); }
   if (action === 'publish') {
@@ -326,7 +327,13 @@ function scheduleDevicePoll(epoch, delay) {
       if (epoch !== deviceEpoch || !deviceActive) return;
       $('#device-status').textContent = error.message;
       if (['NETWORK', 'RATE'].includes(error.code)) scheduleDevicePoll(epoch, 15000);
-      else { deviceActive = false; $('#device-retry').hidden = false; $('#device-status').classList.add('error'); }
+      else {
+        deviceActive = false; $('#device-retry').hidden = false; $('#device-status').classList.add('error');
+        if (error.code === 'DEVICE_INSTALLATION') {
+          $('#device-status').insertAdjacentHTML('afterend', `<section class="notice"><strong>需要组织负责人完成一次仓库授权</strong><ol><li>打开组织的 GitHub Apps，找到网站管理器 App（不是 giscus）。</li><li>点击 Configure，在 Only select repositories 中选中 <code>scyf-pmo.github.io</code> 并保存。若未安装，请到该 App 的设置 → Install App，安装到 <code>scyf-pmo</code>。</li><li>完成后返回这里，点击“重新获取登录码”并重新授权。旧代码不能重复使用。</li></ol><p>浏览器的 All set 只表示个人授权完成。无需更换 Client ID、共享令牌或选择所有仓库。普通维护者请将此提示交给负责人。</p><button class="button secondary" data-action="open-app-installations">打开组织 App 安装设置 ↗</button></section>`);
+          $('#device-retry').textContent = '已完成仓库授权，重新获取登录码';
+        }
+      }
     }
   }, delay);
 }

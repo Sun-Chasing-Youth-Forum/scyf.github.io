@@ -160,6 +160,36 @@ test('canceling a pending code request cannot reopen an abandoned login', async 
   const start = flow.start('Iv1.client-id'); flow.cancel(); finish(deviceResponse());
   await assert.rejects(() => start, /取消/); assert.equal(flow.pending, null);
 });
+
+test('real installation_missing_access response explains installation and never retries with broader scope', async () => {
+  let now = 0; const requests = [];
+  const flow = new DeviceFlow(config, async (url, options) => {
+    requests.push(JSON.parse(options.body));
+    if (url.endsWith('/device/code')) return deviceResponse();
+    return new Response(JSON.stringify({ error: 'installation_missing_access', error_description: 'Your app does not have access to the given target.', error_uri: 'https://docs.github.com/' }), { status: 200 });
+  }, () => now);
+  await flow.start('Iv1.client-id'); now = 5000;
+  await assert.rejects(() => flow.poll(), error => {
+    assert.equal(error.code, 'DEVICE_INSTALLATION');
+    assert.match(error.message, /个人账号授权已完成/);
+    assert.match(error.message, /scyf-pmo.github.io/);
+    assert.match(error.message, /installation_missing_access/);
+    assert.doesNotMatch(error.message, /Your app/);
+    return true;
+  });
+  assert.equal(flow.pending, null);
+  await assert.rejects(() => flow.poll(), /取消/);
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1].repository_id, config.repositoryId);
+});
+
+test('unknown OAuth errors include only a safe error code, never arbitrary upstream content', () => {
+  const flow = new DeviceFlow(config);
+  assert.match(flow.error('new_github_error').message, /new_github_error/);
+  for (const value of ['github_pat_sensitive123', '<script>alert(1)</script>', 'x'.repeat(65), { secret: 'do-not-display' }]) {
+    assert.equal(flow.error(value).message, 'GitHub 未能完成授权，请将此提示提供给论坛负责人。');
+  }
+});
 test('a second start cannot race and invalidate a code already being requested', async () => {
   let finish;
   const flow = new DeviceFlow(config, async () => new Promise(resolve => { finish = resolve; }));
